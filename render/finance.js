@@ -111,6 +111,7 @@ export function selectFinCh(ch, btn) {
 }
 
 export async function runFinanceAI() {
+  if (!document.getElementById('fin-ai-body')) return;
   const d = gd('finance');
   const period = getPL();
   setAILoading('fin-ai-body', 'fin-ai-btn');
@@ -272,10 +273,12 @@ export function renderFinance() {
   });
 
   selectFinCh('all', document.querySelector('#fin-ch-tabs .ch-tab'));
-  document.getElementById('fin-ai-body').innerHTML = `<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">위 버튼을 클릭하면 선택 기간의 재무 데이터를 AI가 분석합니다</div>`;
-  document.getElementById('fin-ai-subtitle').textContent = `분석 기간: ${getPL()}`;
-  document.getElementById('fin-ai-btn').disabled = false;
-  document.getElementById('fin-ai-btn').textContent = '✦ 분석 실행';
+  if (document.getElementById('fin-ai-body')) {
+    document.getElementById('fin-ai-body').innerHTML = `<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">위 버튼을 클릭하면 선택 기간의 재무 데이터를 AI가 분석합니다</div>`;
+    document.getElementById('fin-ai-subtitle').textContent = `분석 기간: ${getPL()}`;
+    document.getElementById('fin-ai-btn').disabled = false;
+    document.getElementById('fin-ai-btn').textContent = '✦ 분석 실행';
+  }
 
   addSparklines('fin-kpi', {
     'fin:총매출': RF.총매출,

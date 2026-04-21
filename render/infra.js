@@ -1,55 +1,90 @@
 // render/infra.js — 매장 인프라 페이지 렌더
-import { S, C, COLORS, COLORS_A } from '../utils/state.js';
+import { C, COLORS, COLORS_A } from '../utils/state.js';
 import { gd, last, prev, fmt, pct, sum } from '../utils/calc.js';
 import { mkC, baseOpts, bar, line } from '../utils/chart.js';
 import { kpi } from '../utils/kpi.js';
 
+function diffSeries(arr) {
+  return arr.map((v, i) => (i === 0 ? 0 : (v || 0) - (arr[i - 1] || 0)));
+}
+
 export function renderInfra() {
   const d = gd('infra');
-  const 출점계 = d.출점_계 || [];
-  const 퇴점계 = d.퇴점_계 || [];
-  const 점당무선 = d.점당생산성_무선 || [];
-  const 인당무선 = d.인당생산성_무선 || [];
-  const 점당유선 = d.점당생산성_유선 || [];
-  const wnet = d.도매순증_무선 || [];
+  const wireless = gd('wireless');
+  const digital = gd('digital');
+  const hr = gd('hr');
+
+  const storeCount = d.소매매장수_계 || [];
+  const storeDelta = diffSeries(storeCount);
+  const openings = storeDelta.map(v => Math.max(v, 0));
+  const closings = storeDelta.map(v => Math.max(-v, 0));
+  const wirelessPerStore = storeCount.map((v, i) => v ? (wireless.CAPA?.[i] || 0) / v : 0);
+  const wirelessPerHead = hr.소매채널?.map((v, i) => v ? (wireless.CAPA?.[i] || 0) / v : 0) || [];
+  const wirelinePerStore = storeCount.map((v, i) => v ? (digital.유선순신규?.[i] || 0) / v : 0);
+  const wholesaleNet = diffSeries(d.도매무선취급점 || []);
 
   document.getElementById('infra-kpi').innerHTML = [
-    kpi('소매 매장수', fmt(last(d.소매매장수_계 || [])), '개', pct(last(d.소매매장수_계 || []), (d.소매매장수_계 || [])[0]), 'gold', '매장 Infra 계', 'inf:소매매장수'),
-    kpi('출점 (기간합)', fmt(sum(출점계)), '개', null, 'green', ''),
-    kpi('퇴점 (기간합)', fmt(sum(퇴점계)), '개', null, 'red', ''),
-    kpi('도매 무선취급점', fmt(last(d.도매무선취급점 || [])), '개', pct(last(d.도매무선취급점 || []), (d.도매무선취급점 || [])[0]), 'blue', '', 'inf:도매무선'),
-    kpi('점당생산성 무선 (최근월)', fmt(last(점당무선), 1), '건/점', null, 'teal', '', 'inf:점당생산성'),
-    kpi('인당생산성 무선 (최근월)', fmt(last(인당무선), 1), '건/인', null, 'purple', '', 'inf:인당생산성'),
+    kpi('소매 매장수 (최근월)', fmt(last(storeCount), 2), '개', pct(last(storeCount), prev(storeCount)), 'gold', '매장 Infra 계', 'inf:소매매장수'),
+    kpi('출점 추정 (기간합)', fmt(sum(openings), 2), '개', null, 'green', '전월 대비 증가분 합산'),
+    kpi('퇴점 추정 (기간합)', fmt(sum(closings), 2), '개', null, 'red', '전월 대비 감소분 합산'),
+    kpi('도매 무선취급점', fmt(last(d.도매무선취급점 || [])), '개소', pct(last(d.도매무선취급점 || []), prev(d.도매무선취급점 || [])), 'blue', '', 'inf:도매무선취급점'),
+    kpi('점당 생산성 (무선)', fmt(last(wirelessPerStore), 1), '건/점', pct(last(wirelessPerStore), prev(wirelessPerStore)), 'teal', '무선 CAPA 기준', 'inf:점당생산성_무선'),
+    kpi('인당 생산성 (무선)', fmt(last(wirelessPerHead), 1), '건/명', pct(last(wirelessPerHead), prev(wirelessPerHead)), 'purple', '소매채널 인력 기준', 'inf:인당생산성_무선'),
   ].join('');
 
   mkC('ch-infra-main', {
-    type: 'bar', data: {
-      labels: d.months, datasets: [
-        { label: '매장수', data: d.소매매장수_계 || [], backgroundColor: C.blueA, borderColor: C.blue, borderWidth: 1.5, yAxisID: 'y' },
-        { label: '출점', data: 출점계, type: 'line', borderColor: C.green, backgroundColor: 'transparent', borderWidth: 2, pointRadius: 2, tension: .3, yAxisID: 'y2' },
-        { label: '퇴점', data: 퇴점계, type: 'line', borderColor: C.red, backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 2, tension: .3, yAxisID: 'y2' }
-      ]
+    type: 'bar',
+    data: {
+      labels: d.months,
+      datasets: [
+        { label: '소매 매장수', data: storeCount, backgroundColor: C.blueA, borderColor: C.blue, borderWidth: 1.5, yAxisID: 'y' },
+        { label: '출점 추정', data: openings, type: 'line', borderColor: C.green, backgroundColor: 'transparent', borderWidth: 2, pointRadius: 2, tension: 0.3, yAxisID: 'y2' },
+        { label: '퇴점 추정', data: closings, type: 'line', borderColor: C.red, backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 2, tension: 0.3, yAxisID: 'y2' },
+      ],
     },
-    options: baseOpts({ scales: { x: { grid: { color: 'rgba(42,53,85,0.5)' }, ticks: { maxRotation: 45, color: '#5c6e9a', font: { size: 10 } } }, y: { grid: { color: 'rgba(42,53,85,0.5)' }, ticks: { color: '#5c6e9a' }, title: { display: true, text: '매장수(개)', color: '#5c6e9a' } }, y2: { position: 'right', grid: { display: false }, ticks: { color: '#5c6e9a' }, title: { display: true, text: '출/퇴점(개)', color: '#5c6e9a' } } } })
+    options: baseOpts({
+      scales: {
+        x: { grid: { color: 'rgba(42,53,85,0.5)' }, ticks: { maxRotation: 45, color: '#5c6e9a', font: { size: 10 } } },
+        y: { grid: { color: 'rgba(42,53,85,0.5)' }, ticks: { color: '#5c6e9a' }, title: { display: true, text: '매장수(개)', color: '#5c6e9a' } },
+        y2: { position: 'right', grid: { display: false }, ticks: { color: '#5c6e9a' }, title: { display: true, text: '출점/퇴점(개)', color: '#5c6e9a' } },
+      },
+    }),
   });
 
-  line('ch-infra-prod', d.months, [{ label: '점당생산성(무선)', data: 점당무선, fill: true }, { label: '인당생산성(무선)', data: 인당무선, color: C.teal }]);
-  line('ch-infra-wholesale', d.months, [{ label: '무선취급점', data: d.도매무선취급점 || [], fill: true }, { label: '유선취급점', data: d.도매유선취급점 || [], color: C.teal }]);
+  line('ch-infra-prod', d.months, [
+    { label: '점당생산성(무선)', data: wirelessPerStore, fill: true },
+    { label: '인당생산성(무선)', data: wirelessPerHead, color: C.teal },
+  ]);
+
+  line('ch-infra-wholesale', d.months, [
+    { label: '무선취급점', data: d.도매무선취급점 || [], fill: true },
+    { label: '유선취급점', data: d.도매유선취급점 || [], color: C.teal },
+  ]);
 
   const hqs = ['강북', '강남', '강서', '동부', '서부'];
-  bar('ch-infra-hq', d.months, hqs.map((h, i) => ({ label: h, data: d[`소매_${h}`] || [], color: COLORS[i], bg: COLORS_A[i] })), true);
+  bar('ch-infra-hq', d.months, hqs.map((hq, i) => ({
+    label: hq,
+    data: d[`소매_${hq}`] || [],
+    color: COLORS[i],
+    bg: COLORS_A[i],
+  })), true);
 
   mkC('ch-infra-wnet', {
-    type: 'bar', data: {
-      labels: d.months, datasets: [{
-        label: '도매 순증(무선)', data: wnet,
-        backgroundColor: wnet.map(v => v >= 0 ? C.greenA : C.redA),
-        borderColor: wnet.map(v => v >= 0 ? C.green : C.red),
-        borderWidth: 1.5
-      }]
+    type: 'bar',
+    data: {
+      labels: d.months,
+      datasets: [{
+        label: '도매 순증(무선취급점)',
+        data: wholesaleNet,
+        backgroundColor: wholesaleNet.map(v => v >= 0 ? C.greenA : C.redA),
+        borderColor: wholesaleNet.map(v => v >= 0 ? C.green : C.red),
+        borderWidth: 1.5,
+      }],
     },
-    options: baseOpts()
+    options: baseOpts(),
   });
 
-  line('ch-infra-wline', d.months, [{ label: '유선순신규 점당생산성', data: 점당유선, fill: true }]);
+  line('ch-infra-wline', d.months, [
+    { label: '유선순신규 점당생산성', data: wirelinePerStore, fill: true },
+  ]);
 }

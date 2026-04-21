@@ -136,7 +136,7 @@
     <div class="topbar-title">경영성과 대시보드</div>
     <div class="topbar-right">
       <span id="topbar-period"></span>
-      <button class="btn-forecast" onclick="openForecast()" id="forecast-btn" style="display:none">✦ 전망</button>
+      <button class="btn-forecast" onclick="openForecast()" id="forecast-btn" style="display:none">✦ AI 분석 및 전망</button>
       <button class="btn-apikey" id="apikey-btn" onclick="openApiKey()" style="display:none" title="AI 분석 API 키 설정">🔑 API 키</button>
       <div id="role-chip" class="role-chip"></div>
       <button class="btn-logout" onclick="logout()">로그아웃</button>
@@ -150,22 +150,6 @@
       <!-- ── 재무 ── -->
       <div class="page" id="page-finance">
         <div id="pb-finance"></div>
-
-        <!-- AI 코멘트 카드 -->
-        <div class="ai-card" id="fin-ai-card">
-          <div class="ai-card-hd">
-            <div>
-              <div class="ai-badge">AI 분석 · Claude</div>
-              <div style="font-size:11px;color:var(--text3);margin-top:5px" id="fin-ai-subtitle">기간 재무 데이터를 분석합니다</div>
-            </div>
-            <button class="ai-refresh" id="fin-ai-btn" onclick="runFinanceAI()">✦ 분석 실행</button>
-          </div>
-          <div class="ai-body" id="fin-ai-body">
-            <div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">
-              위 버튼을 클릭하면 선택 기간의 재무 데이터를 AI가 분석합니다
-            </div>
-          </div>
-        </div>
 
         <!-- 전체 KPI + 차트 -->
         <div id="fin-kpi" class="kpi-grid"></div>
@@ -309,7 +293,7 @@
         <div id="qual-kpi" class="kpi-grid"></div>
         <div class="chart-grid">
           <div class="chart-card wide"><div class="chart-title">TCSI 점수 추이</div><div class="chart-sub">TCSI 전체 · KT점수 · 대리점점수</div><div class="cw cw-tall" data-tall="1"><canvas data-h="300" id="ch-tcsi"></canvas></div></div>
-          <div class="chart-card"><div class="chart-title">R-VOC 발생률</div><div class="chart-sub">도+소매 · 소매 · 도매 · 디지털 (%)</div><div class="cw"><canvas id="ch-voc"></canvas></div></div>
+          <div class="chart-card"><div class="chart-title">R-VOC 발생률</div><div class="chart-sub">도소매 · 디지털 발생률 (%)</div><div class="cw"><canvas id="ch-voc"></canvas></div></div>
           <div class="chart-card"><div class="chart-title">대외민원</div><div class="chart-sub">접수건수 · 귀책률(%)</div><div class="cw"><canvas id="ch-민원"></canvas></div></div>
         </div>
         <div class="region-grid" id="region-tables"></div>
@@ -348,9 +332,9 @@
         <div id="hr-kpi" class="kpi-grid"></div>
         <div class="chart-grid">
           <div class="chart-card wide"><div class="chart-title">인력 구성 추이</div><div class="chart-sub">전사계 · 영업직 · SC직 · 일반직 (명)</div><div class="cw cw-tall" data-tall="1"><canvas data-h="300" id="ch-hr-main"></canvas></div></div>
-          <div class="chart-card"><div class="chart-title">월별 퇴직 현황</div><div class="chart-sub">월별 퇴직 인원 (명)</div><div class="cw"><canvas id="ch-hr-ch"></canvas></div></div>
+          <div class="chart-card"><div class="chart-title">전사 인력 증감</div><div class="chart-sub">전월 대비 인력 순증감 (명)</div><div class="cw"><canvas id="ch-hr-ch"></canvas></div></div>
           <div class="chart-card"><div class="chart-title">직군별 인력 구성</div><div class="chart-sub">연마감 기준 영업직 · SC직 · 일반직 비율</div><div class="cw-donut"><div class="donut-wrap"><canvas id="ch-hr-donut"></canvas></div></div></div>
-          <div class="chart-card wide"><div class="chart-title">영업본부별 인력 추이</div><div class="chart-sub">강북/강남/강서/동부/서부 (명)</div><div class="cw"><canvas id="ch-hr-hq"></canvas></div></div>
+          <div class="chart-card wide"><div class="chart-title">채널별 인력 배치</div><div class="chart-sub">소매채널 · 도매채널 · 기타지원 (명)</div><div class="cw"><canvas id="ch-hr-hq"></canvas></div></div>
         </div>
       </div>
 
@@ -577,7 +561,7 @@
     <div class="forecast-hd">
       <div class="forecast-hd-top">
         <div class="forecast-title">
-          <span style="font-size:18px">🔮</span> AI 전망 분석
+          <span style="font-size:18px">🔮</span> AI 분석 및 전망
           <span class="ai-badge" style="font-size:9px">Claude</span>
         </div>
         <button class="forecast-close" onclick="closeForecast()">✕</button>
