@@ -1,5 +1,5 @@
 // KT M&S 대시보드 Service Worker
-const CACHE_NAME = 'kts-dashboard-v1';
+const CACHE_NAME = 'kts-dashboard-v2';
 const CACHE_FILES = [
   '/',
   '/index.html',
@@ -36,13 +36,35 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// 네트워크 요청 — Cache First 전략
-// 캐시에 있으면 캐시 사용, 없으면 네트워크
+// 네트워크 요청
 self.addEventListener('fetch', e => {
   // Supabase API 요청은 항상 네트워크 사용 (최신 데이터)
   if (e.request.url.includes('supabase.co') ||
       e.request.url.includes('anthropic.com')) {
     return; // 그냥 네트워크로
+  }
+
+  const url = new URL(e.request.url);
+  const isSameOrigin = url.origin === self.location.origin;
+  const isAppShell =
+    e.request.destination === 'document' ||
+    e.request.destination === 'script' ||
+    e.request.destination === 'style' ||
+    (isSameOrigin && (url.pathname.endsWith('.js') || url.pathname.endsWith('.css') || url.pathname.endsWith('.html')));
+
+  if (isAppShell) {
+    e.respondWith(
+      fetch(e.request).then(response => {
+        if (e.request.method === 'GET' && response.status === 200) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(e.request, copy));
+        }
+        return response;
+      }).catch(() =>
+        caches.match(e.request).then(cached => cached || (e.request.destination === 'document' ? caches.match('/index.html') : undefined))
+      )
+    );
+    return;
   }
 
   e.respondWith(
