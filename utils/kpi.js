@@ -4,6 +4,7 @@ import { S } from './state.js';
 import { sum, last, prev, fmt, pct } from './calc.js';
 import { showToast } from './toast.js';
 import { getInfraSeries } from './infra.js';
+import { getHrOverride, getWiredOverride } from './source-overrides.js';
 
 export function kpi(label, value, unit, diff, cls, sub = '', onclickKey = '') {
   const badge = diff != null ? `<div class="kpi-badge ${diff >= 0 ? 'kbd-up' : 'kbd-dn'}">${diff >= 0 ? '▲' : '▼'} ${Math.abs(diff).toFixed(1)}%</div>` : '';
@@ -21,6 +22,8 @@ export function openKpiPopup(key) {
     const TC = RAW.tcsi, VOC = RAW.voc, HR = RAW.hr;
     const platArr = (PLAT.시연폰_매각이익 || []).map((v, i) => (v || 0) + ((PLAT.중고폰_매입금액 || [])[i] || 0));
     const infra = getInfraSeries();
+    const wiredOverride = getWiredOverride(WD.months, WD);
+    const hrOverride = getHrOverride(HR.months, HR);
 
     const MAP = {
       // 재무
@@ -89,6 +92,13 @@ export function openKpiPopup(key) {
       'hr:영업직': { arr: HR.영업직, months: HR.months, label: '영업직 인원', unit: '명', color: '#10b981', icon: '👤' },
       'hr:SC직':   { arr: HR.SC직,   months: HR.months, label: 'SC직 인원',   unit: '명', color: '#f59e0b', icon: '👤' },
     };
+
+    MAP['wdi:maintain'] = { arr: wiredOverride.유지_인터넷, months: WD.months, label: '인터넷 유지', unit: '건', color: '#f59e0b', icon: 'I' };
+    MAP['wdi:new'] = { arr: wiredOverride.신규_인터넷, months: WD.months, label: '인터넷 신규', unit: '건', color: '#10b981', icon: 'N' };
+    MAP['wdi:cancel'] = { arr: wiredOverride.해지_인터넷, months: WD.months, label: '인터넷 해지', unit: '건', color: '#ef4444', icon: 'C' };
+    MAP['hro:sc'] = { arr: hrOverride.SC직, months: HR.months, label: 'SC직 인원', unit: '명', color: '#06b6d4', icon: 'H' };
+    MAP['hro:retail'] = { arr: hrOverride.소매채널, months: HR.months, label: '소매채널 인원', unit: '명', color: '#22c55e', icon: 'R' };
+    MAP['hro:wholesale'] = { arr: hrOverride.도매채널, months: HR.months, label: '도매채널 인원', unit: '명', color: '#f97316', icon: 'W' };
 
     const info = MAP[key];
     if (!info || !info.arr || !info.arr.length) { showToast('⚠ 데이터 없음'); return; }

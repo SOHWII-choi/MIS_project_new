@@ -2,3 +2,5 @@
 *.local
 .env
 node_modules/
+audit_cache/
+raw_export.json
