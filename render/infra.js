@@ -8,13 +8,17 @@ function diffSeries(arr) {
   return arr.map((v, i) => (i === 0 ? 0 : (v || 0) - (arr[i - 1] || 0)));
 }
 
+function scaleStoreCounts(arr) {
+  return (arr || []).map(v => Math.round((v || 0) * 100));
+}
+
 export function renderInfra() {
   const d = gd('infra');
   const wireless = gd('wireless');
   const digital = gd('digital');
   const hr = gd('hr');
 
-  const storeCount = d.소매매장수_계 || [];
+  const storeCount = scaleStoreCounts(d.소매매장수_계 || []);
   const storeDelta = diffSeries(storeCount);
   const openings = storeDelta.map(v => Math.max(v, 0));
   const closings = storeDelta.map(v => Math.max(-v, 0));
@@ -22,11 +26,29 @@ export function renderInfra() {
   const wirelessPerHead = hr.소매채널?.map((v, i) => v ? (wireless.CAPA?.[i] || 0) / v : 0) || [];
   const wirelinePerStore = storeCount.map((v, i) => v ? (digital.유선순신규?.[i] || 0) / v : 0);
   const wholesaleNet = diffSeries(d.도매무선취급점 || []);
+  const hqs = ['강북', '강남', '강서', '동부', '서부'];
+  const rawRegional = Object.fromEntries(hqs.map(hq => [hq, d[`소매_${hq}`] || []]));
+  const regionalCounts = {};
+
+  hqs.forEach(hq => { regionalCounts[hq] = []; });
+  d.months.forEach((_, i) => {
+    const weights = hqs.map(hq => rawRegional[hq][i] || 0);
+    const weightSum = weights.reduce((acc, v) => acc + v, 0) || 1;
+    let assigned = 0;
+
+    hqs.forEach((hq, idx) => {
+      const value = idx === hqs.length - 1
+        ? Math.max(0, storeCount[i] - assigned)
+        : Math.round(storeCount[i] * (weights[idx] / weightSum));
+      regionalCounts[hq].push(value);
+      assigned += value;
+    });
+  });
 
   document.getElementById('infra-kpi').innerHTML = [
-    kpi('소매 매장수 (최근월)', fmt(last(storeCount), 2), '개', pct(last(storeCount), prev(storeCount)), 'gold', '매장 Infra 계', 'inf:소매매장수'),
-    kpi('출점 추정 (기간합)', fmt(sum(openings), 2), '개', null, 'green', '전월 대비 증가분 합산'),
-    kpi('퇴점 추정 (기간합)', fmt(sum(closings), 2), '개', null, 'red', '전월 대비 감소분 합산'),
+    kpi('소매 매장수 (최근월)', fmt(last(storeCount)), '개', pct(last(storeCount), prev(storeCount)), 'gold', '매장 Infra 계', 'inf:소매매장수'),
+    kpi('출점 추정 (기간합)', fmt(sum(openings)), '개', null, 'green', '전월 대비 증가분 합산'),
+    kpi('퇴점 추정 (기간합)', fmt(sum(closings)), '개', null, 'red', '전월 대비 감소분 합산'),
     kpi('도매 무선취급점', fmt(last(d.도매무선취급점 || [])), '개소', pct(last(d.도매무선취급점 || []), prev(d.도매무선취급점 || [])), 'blue', '', 'inf:도매무선취급점'),
     kpi('점당 생산성 (무선)', fmt(last(wirelessPerStore), 1), '건/점', pct(last(wirelessPerStore), prev(wirelessPerStore)), 'teal', '무선 CAPA 기준', 'inf:점당생산성_무선'),
     kpi('인당 생산성 (무선)', fmt(last(wirelessPerHead), 1), '건/명', pct(last(wirelessPerHead), prev(wirelessPerHead)), 'purple', '소매채널 인력 기준', 'inf:인당생산성_무선'),
@@ -61,10 +83,9 @@ export function renderInfra() {
     { label: '유선취급점', data: d.도매유선취급점 || [], color: C.teal },
   ]);
 
-  const hqs = ['강북', '강남', '강서', '동부', '서부'];
   bar('ch-infra-hq', d.months, hqs.map((hq, i) => ({
     label: hq,
-    data: d[`소매_${hq}`] || [],
+    data: regionalCounts[hq],
     color: COLORS[i],
     bg: COLORS_A[i],
   })), true);
