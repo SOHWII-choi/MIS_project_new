@@ -11,7 +11,7 @@ export function renderQuality() {
     kpi('TCSI 점수 (최근월)', fmt(last(tc.TCSI점수), 1), '점', pct(last(tc.TCSI점수), tc.TCSI점수[0]), 'gold', `KT점수 ${fmt(last(tc.KT점수), 1)}`, 'tc:TCSI점수'),
     kpi('KT 점수', fmt(last(tc.KT점수), 1), '점', null, 'teal', `대리점 ${fmt(last(tc.대리점점수), 1)}`, 'tc:KT점수'),
     kpi('VOC 도+소매 발생률', fmt(last(vc.도소매발생률), 4), '%', pct(last(vc.도소매발생률), vc.도소매발생률[0]), 'green', '낮을수록 우수', 'voc:도소매발생률'),
-    kpi('VOC 소매 발생률', fmt(last(vc.소매발생률), 4), '%', null, 'blue', '', 'voc:소매발생률'),
+    kpi('VOC 소매 발생률', fmt(last(vc.소매발생률 || []), 4), '%', null, 'blue', '', 'voc:소매발생률'),
     kpi('대외민원 건수 (최근월)', fmt(last(vc.대외민원_건수)), '건', pct(last(vc.대외민원_건수), prev(vc.대외민원_건수)), 'red', '', 'voc:대외민원'),
     kpi('대외민원 귀책률 (최근월)', fmt(last(vc.대외민원_귀책률), 1), '%', null, 'orange', ''),
   ].join('');
@@ -29,9 +29,9 @@ export function renderQuality() {
 
   line('ch-voc', vc.months, [
     { label: '도+소매', data: vc.도소매발생률 },
-    { label: '소매', data: vc.소매발생률, color: C.teal },
-    { label: '도매', data: vc.도매발생률, color: C.blue },
-    { label: '디지털', data: vc.디지털발생률, color: C.purple }
+    { label: '소매', data: vc.소매발생률 || [], color: C.teal },
+    { label: '도매', data: vc.도매발생률 || [], color: C.blue },
+    { label: '디지털', data: vc.디지털발생률 || [], color: C.purple }
   ]);
 
   mkC('ch-민원', {

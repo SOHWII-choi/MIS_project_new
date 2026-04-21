@@ -7,18 +7,19 @@ import { kpi } from '../utils/kpi.js';
 export function renderHR() {
   const d = gd('hr');
 
+  const 퇴직계 = d.퇴직계 || [];
   const lastTotal = last(d.전사계) || 1;
-  const monthlyQuit = last(d.퇴직계) || 0;
+  const monthlyQuit = last(퇴직계) || 0;
   const quitRate = (monthlyQuit / lastTotal * 100);
-  const annualQuitEst = (sum(d.퇴직계) / d.전사계.reduce((s, v, i) => s + (v || 0), 0) * 12 * 100) || 0;
+  const annualQuitEst = (sum(퇴직계) / d.전사계.reduce((s, v, i) => s + (v || 0), 0) * 12 * 100) || 0;
 
   document.getElementById('hr-kpi').innerHTML = [
     kpi('전사계 (최근월)', fmt(last(d.전사계)), '명', pct(last(d.전사계), d.전사계[0]), 'gold', '기간 시작 대비', 'hr:전사계'),
     kpi('영업직', fmt(last(d.영업직)), '명', pct(last(d.영업직), d.영업직[0]), 'blue', '', 'hr:영업직'),
     kpi('SC직', fmt(last(d.SC직)), '명', pct(last(d.SC직), d.SC직[0]), 'teal', '', 'hr:SC직'),
     kpi('일반직', fmt(last(d.일반직)), '명', null, 'purple', ''),
-    kpi('소매채널', fmt(last(d.소매채널)), '명', pct(last(d.소매채널), d.소매채널[0]), 'green', ''),
-    kpi('퇴직률 (연환산)', fmt(annualQuitEst, 1), '%', null, 'red', `월 퇴직 평균 ${fmt(sum(d.퇴직계) / d.months.length, 1)}명`),
+    kpi('소매채널', fmt(last(d.소매채널 || [])), '명', pct(last(d.소매채널 || []), (d.소매채널 || [])[0]), 'green', ''),
+    kpi('퇴직률 (연환산)', fmt(annualQuitEst, 1), '%', null, 'red', `월 퇴직 평균 ${fmt(sum(퇴직계) / d.months.length, 1)}명`),
   ].join('');
 
   line('ch-hr-main', d.months, [
@@ -30,7 +31,7 @@ export function renderHR() {
 
   bar('ch-hr-ch', d.months, [{
     label: '월별 퇴직',
-    data: d.퇴직계,
+    data: 퇴직계,
     color: C.red,
     bg: 'rgba(239,68,68,0.65)'
   }]);
