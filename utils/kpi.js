@@ -3,6 +3,7 @@ import { RAW } from '../data/raw.js';
 import { S } from './state.js';
 import { sum, last, prev, fmt, pct } from './calc.js';
 import { showToast } from './toast.js';
+import { getInfraSeries } from './infra.js';
 
 export function kpi(label, value, unit, diff, cls, sub = '', onclickKey = '') {
   const badge = diff != null ? `<div class="kpi-badge ${diff >= 0 ? 'kbd-up' : 'kbd-dn'}">${diff >= 0 ? '▲' : '▼'} ${Math.abs(diff).toFixed(1)}%</div>` : '';
@@ -14,12 +15,12 @@ export function kpi(label, value, unit, diff, cls, sub = '', onclickKey = '') {
 
 export function openKpiPopup(key) {
   try {
-    const parts = key.split(':'), ns = parts[0];
     const FIN = RAW.finance, ORG = RAW.org, PLAT = RAW.platform;
     const WL = RAW.wireless, WD = RAW.wired;
     const DIG = RAW.digital, B2B = RAW.b2b, SMB = RAW.smb;
-    const TC = RAW.tcsi, VOC = RAW.voc, HR = RAW.hr, INF = RAW.infra;
+    const TC = RAW.tcsi, VOC = RAW.voc, HR = RAW.hr;
     const platArr = (PLAT.시연폰_매각이익 || []).map((v, i) => (v || 0) + ((PLAT.중고폰_매입금액 || [])[i] || 0));
+    const infra = getInfraSeries();
 
     const MAP = {
       // 재무
@@ -75,11 +76,14 @@ export function openKpiPopup(key) {
       'voc:도매발생률':   { arr: VOC.도매발생률,  months: VOC.months, label: '도매 발생률',    unit: '%', color: '#8b5cf6', icon: '📢' },
       'voc:대외민원':     { arr: VOC.대외민원_건수, months: VOC.months, label: '대외민원 건수', unit: '건', color: '#ef4444', icon: '⚠️' },
       // 인프라
-      'inf:소매매장수':  { arr: INF.소매매장수_계,  months: INF.months, label: '소매 매장수',     unit: '개', color: '#f59e0b', icon: '🏪' },
-      'inf:도매무선':    { arr: INF.도매무선취급점,  months: INF.months, label: '도매 무선취급점', unit: '개', color: '#3b82f6', icon: '🏭' },
-      'inf:도매유선':    { arr: INF.도매유선취급점,  months: INF.months, label: '도매 유선취급점', unit: '개', color: '#06b6d4', icon: '🏭' },
-      'inf:점당생산성':  { arr: INF.점당생산성_무선, months: INF.months, label: '무선 점당생산성', unit: '건', color: '#10b981', icon: '📊' },
-      'inf:인당생산성':  { arr: INF.인당생산성_무선, months: INF.months, label: '무선 인당생산성', unit: '건', color: '#8b5cf6', icon: '👤' },
+      'inf:소매매장수':       { arr: infra.storeCount,       months: infra.months, label: '소매 매장수',     unit: '개',   color: '#f59e0b', icon: '🏪' },
+      'inf:도매무선':         { arr: infra.wholesaleWireless, months: infra.months, label: '도매 무선취급점', unit: '개',   color: '#3b82f6', icon: '🏭' },
+      'inf:도매무선취급점':   { arr: infra.wholesaleWireless, months: infra.months, label: '도매 무선취급점', unit: '개',   color: '#3b82f6', icon: '🏭' },
+      'inf:도매유선':         { arr: infra.wholesaleWireline, months: infra.months, label: '도매 유선취급점', unit: '개',   color: '#06b6d4', icon: '🏭' },
+      'inf:점당생산성':       { arr: infra.wirelessPerStore,  months: infra.months, label: '무선 점당생산성', unit: '건/점', color: '#10b981', icon: '📊' },
+      'inf:점당생산성_무선':  { arr: infra.wirelessPerStore,  months: infra.months, label: '무선 점당생산성', unit: '건/점', color: '#10b981', icon: '📊' },
+      'inf:인당생산성':       { arr: infra.wirelessPerHead,   months: infra.months, label: '무선 인당생산성', unit: '건/명', color: '#8b5cf6', icon: '👤' },
+      'inf:인당생산성_무선':  { arr: infra.wirelessPerHead,   months: infra.months, label: '무선 인당생산성', unit: '건/명', color: '#8b5cf6', icon: '👤' },
       // 인력
       'hr:전사계': { arr: HR.전사계, months: HR.months, label: '전사 인원',   unit: '명', color: '#3b82f6', icon: '👥' },
       'hr:영업직': { arr: HR.영업직, months: HR.months, label: '영업직 인원', unit: '명', color: '#10b981', icon: '👤' },
@@ -122,7 +126,7 @@ export function openKpiPopup(key) {
     const tDir = !pA ? '보합' : rA > pA ? '상승▲' : rA < pA ? '하락▼' : '보합';
     const tPct = pA ? Math.abs((rA - pA) / Math.abs(pA) * 100).toFixed(1) : 0;
     const tC = tDir.includes('상승') ? '#10b981' : tDir.includes('하락') ? '#ef4444' : '#8b93b8';
-    const f = (v, u) => fmt(v ?? 0, u === '억원' ? 1 : 0);
+    const f = (v, u) => fmt(v ?? 0, (u === '억원' || String(u).includes('/')) ? 1 : 0);
     const n12 = Math.min(arr.length, 12);
 
     const getQ = (ri) => {
