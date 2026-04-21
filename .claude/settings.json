@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "additionalDirectories": [
+      "C:\\Users\\user\\Downloads\\files(1)"
+    ],
+    "allow": [
+      "Bash(python3 -c ' *)"
+    ]
+  }
+}
