@@ -71,6 +71,20 @@ const _pendingChanges = [
 ];
 let _deployed = false;
 
+export function addPendingChange(type, msg) {
+  const icons = { add: '🟢', mod: '🟡', del: '🔴', edit: '🔵' };
+  _pendingChanges.unshift({ type, icon: icons[type] || '🟡', msg, dt: new Date().toLocaleString('ko-KR') });
+  _deployed = false;
+  // 베타 페이지가 열려있으면 즉시 갱신
+  if (document.getElementById('beta-changes')) {
+    renderAdminBeta();
+    const badge = document.getElementById('beta-status-badge');
+    if (badge) { badge.textContent = `● BETA — 변경 ${_pendingChanges.length}건 대기`; badge.style.background = 'rgba(245,158,11,.15)'; badge.style.color = 'var(--gold)'; badge.style.borderColor = 'rgba(245,158,11,.3)'; }
+    const deployBtn = document.getElementById('deploy-btn');
+    if (deployBtn) { deployBtn.disabled = false; deployBtn.textContent = '🚀 지금 배포하기'; }
+  }
+}
+
 // ── RAW 데이터 소스 맵 ──
 const SRC_META = {
   finance:  { label: '💰 재무',       icon: '💰' },
@@ -338,6 +352,7 @@ export function toggleMetric(i, val) {
     if (st) { st.className = 'status ' + (val ? 'st-on' : 'st-off'); st.textContent = val ? '활성' : '비활성'; }
   }
   showToast(`${METRICS_L[i].name} ${val ? '활성화' : '비활성화'}`);
+  addPendingChange(val ? 'add' : 'del', `지표 ${val ? '활성화' : '비활성화'}: ${METRICS_L[i].name}`);
 }
 
 export function openMetricEdit(i) {
@@ -404,11 +419,13 @@ export function saveMetric() {
     src: document.getElementById('me-src').value.trim(),
   };
   if (!m.name) { showToast('❗ 지표명을 입력하세요'); return; }
-  if (_editMetricIdx >= 0) METRICS_L[_editMetricIdx] = m;
+  const isEdit = _editMetricIdx >= 0;
+  if (isEdit) METRICS_L[_editMetricIdx] = m;
   else METRICS_L.push(m);
   window.closeModal && window.closeModal('modal-metric-edit');
   renderAdminMetrics();
-  showToast(`✅ 지표 "${m.name}" ${_editMetricIdx >= 0 ? '수정' : '추가'} 완료 ${m.src ? '· 데이터 연결: ' + m.src : ''}`);
+  showToast(`✅ 지표 "${m.name}" ${isEdit ? '수정' : '추가'} 완료 ${m.src ? '· 데이터 연결: ' + m.src : ''}`);
+  addPendingChange(isEdit ? 'mod' : 'add', `지표 ${isEdit ? '수정' : '추가'}: ${m.name}${m.src ? ' (' + m.src + ')' : ''}`);
 }
 
 export function deleteMetric() {
@@ -418,6 +435,7 @@ export function deleteMetric() {
   window.closeModal && window.closeModal('modal-metric-edit');
   renderAdminMetrics();
   showToast(`🗑️ 지표 "${name}" 삭제 완료`);
+  addPendingChange('del', `지표 삭제: ${name}`);
 }
 
 export function renderAdminUsers() {
@@ -574,9 +592,28 @@ export function renderAdminBeta() {
 }
 
 export function previewPage(id) {
-  showToast(`🖥️ "${MENUS.executive.find(m => m.id === id)?.label}" 미리보기 — 임원 화면과 동일합니다`);
-  const pe = document.getElementById('page-' + id);
-  if (pe) { document.querySelector('.beta-preview').innerHTML = `<div style="padding:10px;font-size:12px;color:var(--green)">✅ "${MENUS.executive.find(m => m.id === id)?.label}" 페이지 — 배포 후 임원이 보는 화면과 동일<br><span style="font-size:10px;color:var(--text3)">실제 데이터가 반영된 최신 상태입니다</span></div>`; }
+  const existing = document.getElementById('__preview-banner');
+  if (existing) existing.remove();
+
+  if (window.nav) window.nav(id);
+
+  const label = MENUS.executive.find(m => m.id === id)?.label || id;
+  const banner = document.createElement('div');
+  banner.id = '__preview-banner';
+  banner.style.cssText = [
+    'position:fixed','top:0','left:0','right:0','z-index:9999',
+    'background:linear-gradient(90deg,#7c3aed,#4f46e5)',
+    'color:#fff','display:flex','align-items:center','justify-content:space-between',
+    'padding:8px 20px','font-size:12px','font-family:var(--font)',
+    'box-shadow:0 2px 12px rgba(0,0,0,.4)',
+  ].join(';');
+  banner.innerHTML = `
+    <span>🖥️ 베타 미리보기 — <strong>${label}</strong> (임원 화면과 동일한 실제 렌더링)</span>
+    <button onclick="(function(){document.getElementById('__preview-banner').remove();if(window.nav)window.nav('admin-beta');})()"
+      style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;padding:4px 14px;border-radius:6px;cursor:pointer;font-size:11px">
+      ← Admin 돌아가기
+    </button>`;
+  document.body.appendChild(banner);
 }
 
 export function doDeploy() {
