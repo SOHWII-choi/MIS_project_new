@@ -13,6 +13,7 @@ import {
   callAI, setAILoading, setAIResult, setAIError
 } from './utils/ai.js';
 
+import { renderSummary } from './render/summary.js';
 import { renderFinance, calcChannelFinance, selectFinCh, runFinanceAI, runChannelAI } from './render/finance.js';
 import { renderWireless, openWlMonthModal } from './render/wireless.js';
 import { renderWired } from './render/wired.js';
@@ -87,6 +88,7 @@ Object.assign(window, {
   callAI, setAILoading, setAIResult, setAIError,
 
   // render — pages
+  renderSummary,
   renderFinance, calcChannelFinance, selectFinCh, runFinanceAI, runChannelAI,
   renderWireless, openWlMonthModal,
   renderWired,
@@ -118,6 +120,7 @@ Object.assign(window, {
 
 // ── RENDER_MAP (app.js가 읽는 window.RENDER_MAP) ──
 window.RENDER_MAP = {
+  summary:  () => { renderSummary(); },
   finance:  () => { buildPB('pb-finance',  'renderFinance');  renderFinance(); },
   wireless: () => { buildPB('pb-wireless', 'renderWireless'); renderWireless(); },
   wired:    () => { buildPB('pb-wired',    'renderWired');    renderWired(); },

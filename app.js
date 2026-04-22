@@ -1,6 +1,7 @@
 // KT M&S 경영성과 대시보드 — 앱 로직
 // ─────────────────────────────────
 const RENDER_MAP={
+  summary:()=>{ if(window.renderSummary) window.renderSummary(); },
   finance:()=>{buildPB('pb-finance','renderFinance');renderFinance();},
   wireless:()=>{buildPB('pb-wireless','renderWireless');renderWireless();},
   wired:()=>{buildPB('pb-wired','renderWired');renderWired();},

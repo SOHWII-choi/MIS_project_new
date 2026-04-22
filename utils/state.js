@@ -24,6 +24,7 @@ export const COLORS_BAR = [
 
 export const MENUS = {
   executive: [
+    { id: 'summary',   icon: '🏠', label: '경영요약',   sec: '홈' },
     { id: 'finance',   icon: '💰', label: '재무',       sec: '경영성과' },
     { id: 'wireless',  icon: '📱', label: '무선 가입자', sec: '가입자 현황' },
     { id: 'wired',     icon: '🌐', label: '유선 가입자', sec: '가입자 현황' },
