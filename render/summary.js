@@ -255,11 +255,11 @@ export function renderSummary() {
 
 <!-- ④ 조직별 이슈 -->
 <div style="margin-bottom:18px">
-  <div class="sum-section-title">🏢 조직별 영업이익 이슈 (25년 누계, YoY)</div>
+  <div class="sum-section-title">🏢 조직별 이슈 (25년 누계, YoY)</div>
   <div class="sum-grid2">
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px">
       <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:5px">
-        <span>🏪</span> 소매 · 소상공인 본부
+        <span>🏪</span> 소매 · 소상공인
       </div>
       <div style="display:flex;flex-direction:column;gap:6px">
         ${issueRow('소매 영업이익', ch영업.소매.cur, '억원', chPct(ch영업.소매))}
@@ -269,7 +269,7 @@ export function renderSummary() {
     </div>
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px">
       <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:5px">
-        <span>🏭</span> 도매 · 디지털 본부
+        <span>🏭</span> 도매 · 디지털
       </div>
       <div style="display:flex;flex-direction:column;gap:6px">
         ${issueRow('도매 영업이익', ch영업.도매.cur, '억원', chPct(ch영업.도매))}
