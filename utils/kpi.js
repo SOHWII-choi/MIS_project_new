@@ -21,19 +21,21 @@ export function openKpiPopup(key) {
     const DIG = RAW.digital, B2B = RAW.b2b, SMB = RAW.smb;
     const TC = RAW.tcsi, VOC = RAW.voc, HR = RAW.hr;
     const platArr = FIN.유통플랫폼매출 || (PLAT.시연폰_매각이익 || []).map((v, i) => (v || 0) + ((PLAT.중고폰_매입금액 || [])[i] || 0));
+    const 서비스매출Arr = FIN.서비스매출 || FIN.수수료매출;
     const infra = getInfraSeries();
     const wiredOverride = getWiredOverride(WD.months, WD);
     const hrOverride = getHrOverride(HR.months, HR);
 
     const MAP = {
       // 재무
-      'fin:총매출':     { arr: FIN.총매출,    months: FIN.months, label: '총매출',         unit: '억원', color: '#f59e0b', icon: '💰' },
-      'fin:통신매출':   { arr: FIN.통신매출,  months: FIN.months, label: '통신매출',       unit: '억원', color: '#3b82f6', icon: '📡' },
-      'fin:영업이익':   { arr: FIN.영업이익,  months: FIN.months, label: '영업이익',       unit: '억원', color: '#10b981', icon: '📈' },
-      'fin:판관비':     { arr: FIN.판관비,    months: FIN.months, label: '판관비',         unit: '억원', color: '#8b5cf6', icon: '💼' },
-      'fin:마케팅비':   { arr: FIN.마케팅비,  months: FIN.months, label: '마케팅비',       unit: '억원', color: '#f97316', icon: '📢' },
-      'fin:인건비':     { arr: FIN.인건비,    months: FIN.months, label: '인건비',         unit: '억원', color: '#ec4899', icon: '👥' },
-      'fin:유통플랫폼': { arr: platArr,       months: FIN.months, label: '유통플랫폼매출', unit: '억원', color: '#06b6d4', icon: '♻️' },
+      'fin:총매출':     { arr: FIN.총매출,       months: FIN.months, label: '총매출',         unit: '억원', color: '#f59e0b', icon: '💰' },
+      'fin:서비스매출': { arr: 서비스매출Arr,    months: FIN.months, label: '서비스매출',     unit: '억원', color: '#06b6d4', icon: '🏆' },
+      'fin:통신매출':   { arr: FIN.통신매출,     months: FIN.months, label: '통신매출',       unit: '억원', color: '#3b82f6', icon: '📡' },
+      'fin:영업이익':   { arr: FIN.영업이익,     months: FIN.months, label: '영업이익',       unit: '억원', color: '#10b981', icon: '📈' },
+      'fin:판관비':     { arr: FIN.판관비,       months: FIN.months, label: '판관비',         unit: '억원', color: '#8b5cf6', icon: '💼' },
+      'fin:마케팅비':   { arr: FIN.마케팅비,     months: FIN.months, label: '마케팅비',       unit: '억원', color: '#f97316', icon: '📢' },
+      'fin:인건비':     { arr: FIN.인건비,       months: FIN.months, label: '인건비',         unit: '억원', color: '#ec4899', icon: '👥' },
+      'fin:유통플랫폼': { arr: platArr,          months: FIN.months, label: '유통플랫폼매출', unit: '억원', color: '#14b8a6', icon: '♻️' },
       // 무선
       'wl:유지':  { arr: WL.유지,  months: WL.months, label: '무선 유지가입자', unit: '건', color: '#3b82f6', icon: '📱' },
       'wl:CAPA':  { arr: WL.CAPA,  months: WL.months, label: '무선 CAPA',      unit: '건', color: '#f59e0b', icon: '📶' },

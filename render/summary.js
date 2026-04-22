@@ -91,8 +91,8 @@ export function renderSummary() {
   const lastIdx = fMonths.length - 1;
   const lastM   = fMonths[lastIdx];  // e.g. 25.12월
 
-  // ── 서비스매출 = 수수료매출 + 유통플랫폼매출
-  const 서비스Raw = FIN['수수료매출'].map((v, i) => (v || 0) + (FIN['유통플랫폼매출'][i] || 0));
+  // ── 서비스매출 = 통신수수료 + 유통플랫폼수수료 (raw.js finance.서비스매출)
+  const 서비스Raw = FIN['서비스매출'] || FIN['수수료매출'];
 
   // ── YoY
   const yoy총매출   = yoy(FIN['총매출'],  fMonths);
@@ -237,7 +237,7 @@ export function renderSummary() {
   <div class="sum-section-title">💰 재무 핵심 KPI (25년 누계, 클릭 시 상세)</div>
   <div class="sum-grid3">
     ${card({ label: '총매출', icon: '📊', value: fmt(yoy총매출?.cur ?? 0, 0), unit: '억원', yoyPct: yoy총매출?.pct, sub: `전년동기 ${fmt(yoy총매출?.prev ?? 0, 0)}억`, color: 'linear-gradient(135deg,#5b6ef5,#7c8ffa)', page: 'finance' })}
-    ${card({ label: '서비스매출', icon: '🏆', value: fmt(yoy서비스?.cur ?? 0, 0), unit: '억원', yoyPct: yoy서비스?.pct, sub: `수수료+유통플랫폼 · 전년 ${fmt(yoy서비스?.prev ?? 0, 0)}억`, color: 'linear-gradient(135deg,#06b6d4,#22d3ee)', page: 'finance' })}
+    ${card({ label: '서비스매출', icon: '🏆', value: fmt(yoy서비스?.cur ?? 0, 0), unit: '억원', yoyPct: yoy서비스?.pct, sub: `통신+유통플랫폼 수수료 · 전년 ${fmt(yoy서비스?.prev ?? 0, 0)}억`, color: 'linear-gradient(135deg,#06b6d4,#22d3ee)', page: 'finance' })}
     ${card({ label: '영업이익', icon: (yoy영업이익?.cur ?? 0) >= 0 ? '📈' : '📉', value: fmt(yoy영업이익?.cur ?? 0, 1), unit: '억원', yoyPct: yoy영업이익?.pct, sub: `전년동기 ${fmt(yoy영업이익?.prev ?? 0, 1)}억 · 최근월 ${fmt(영업이익last, 1)}억`, color: (yoy영업이익?.cur ?? 0) >= 0 ? 'linear-gradient(135deg,#10b981,#34d399)' : 'linear-gradient(135deg,#ef4444,#f87171)', page: 'finance' })}
   </div>
 </div>

@@ -178,13 +178,24 @@ export function renderFinance() {
   const d = gd('finance');
 
   const RF = RAW.finance;
-  const yoyTot  = yoySum(RF.총매출,  RF.months);
-  const yoyTong = yoySum(RF.통신매출, RF.months);
-  const yoyOp   = yoySum(RF.영업이익, RF.months);
-  const yoyMkt  = yoySum(RF.마케팅비, RF.months);
-  const yoyOpex = yoySum(RF.판관비,   RF.months);
 
-  function yoyBadge(yoyObj) { if (!yoyObj) return null; return yoyObj.pct; }
+  // 기간 선택(S.pi)을 반영한 YoY 계산 — 항상 선택 기간 vs 전년동기
+  function piYoy(arr) {
+    const { s, e } = S.pi;
+    const cur = (arr || []).slice(s, e + 1).reduce((a, b) => a + (b || 0), 0);
+    const prevS = s - 12, prevE = e - 12;
+    if (prevS < 0) return { cur, prev: null, pct: null };
+    const prev = (arr || []).slice(prevS, prevE + 1).reduce((a, b) => a + (b || 0), 0);
+    return { cur, prev, pct: prev ? (cur - prev) / Math.abs(prev) * 100 : 0 };
+  }
+
+  const yoyTot  = piYoy(RF.총매출);
+  const yoyTong = piYoy(RF.통신매출);
+  const yoyOp   = piYoy(RF.영업이익);
+  const yoyMkt  = piYoy(RF.마케팅비);
+  const yoyOpex = piYoy(RF.판관비);
+
+  function yoyBadge(yoyObj) { if (!yoyObj || yoyObj.pct == null) return null; return yoyObj.pct; }
 
   const lastM = d.months[d.months.length - 1];
   const lastMonthPart = lastM.replace(/^'?\d+\./, '');
@@ -192,22 +203,20 @@ export function renderFinance() {
   const prevYearStr = curYearStr ? String(parseInt(curYearStr) - 1) : '';
   const compLabel = `전년동기대비 (${prevYearStr}년 1~${lastMonthPart} vs ${curYearStr}년 1~${lastMonthPart})`;
 
-  const dp = gd('platform');
-  const RP = RAW.platform;
-  const platRaw = RF.유통플랫폼매출 || (RP.시연폰_매각이익 || []).map((v, i) => (v || 0) + ((RP.중고폰_매입금액 || [])[i] || 0));
-  const yoyPlat = yoySum(platRaw, RF.months);
+  const 서비스Raw = RF.서비스매출 || RF.수수료매출;
+  const yoySvc = piYoy(서비스Raw);
 
   document.getElementById('fin-kpi').innerHTML = `
     <div style="grid-column:1/-1;font-size:10px;color:var(--text3);background:rgba(91,110,245,.06);border:1px solid rgba(91,110,245,.15);border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:6px">
       <span style="font-size:12px">📊</span> <b style="color:var(--primary)">비교기준:</b> ${compLabel}
       <span style="margin-left:6px;color:var(--text3)">· 각 카드 클릭 시 상세 분석</span>
     </div>` + [
-    kpi('총매출 (누계)', fmt(yoyTot?.cur ?? sum(RF.총매출), 1), '억원', yoyBadge(yoyTot), 'gold', `전년동기 ${fmt(yoyTot?.prev ?? 0, 1)}억`, 'fin:총매출'),
-    kpi('통신매출 (누계)', fmt(yoyTong?.cur ?? sum(RF.통신매출), 1), '억원', yoyBadge(yoyTong), 'blue', `전년동기 ${fmt(yoyTong?.prev ?? 0, 1)}억`, 'fin:통신매출'),
-    kpi('영업이익 (누계)', fmt(yoyOp?.cur ?? sum(RF.영업이익), 1), '억원', yoyBadge(yoyOp), (yoyOp?.cur ?? sum(RF.영업이익)) >= 0 ? 'green' : 'red', `전년동기 ${fmt(yoyOp?.prev ?? 0, 1)}억`, 'fin:영업이익'),
-    kpi('판관비 (누계)', fmt(yoyOpex?.cur ?? sum(RF.판관비), 1), '억원', yoyBadge(yoyOpex), 'purple', `인건비 ${fmt(sum(RF.인건비), 1)}억`, 'fin:판관비'),
-    kpi('마케팅비 (누계)', fmt(yoyMkt?.cur ?? sum(RF.마케팅비), 1), '억원', yoyBadge(yoyMkt), 'orange', `전년동기 ${fmt(yoyMkt?.prev ?? 0, 1)}억`, 'fin:마케팅비'),
-    kpi('유통플랫폼 (누계)', fmt(yoyPlat?.cur ?? sum(platRaw), 1), '억원', yoyBadge(yoyPlat), 'teal', `전년동기 ${fmt(yoyPlat?.prev ?? 0, 1)}억`, 'fin:유통플랫폼'),
+    kpi('총매출 (누계)', fmt(yoyTot.cur, 1), '억원', yoyBadge(yoyTot), 'gold', yoyTot.prev != null ? `전년동기 ${fmt(yoyTot.prev, 1)}억` : '', 'fin:총매출'),
+    kpi('서비스매출 (누계)', fmt(yoySvc.cur, 1), '억원', yoyBadge(yoySvc), 'teal', yoySvc.prev != null ? `전년동기 ${fmt(yoySvc.prev, 1)}억` : '', 'fin:서비스매출'),
+    kpi('영업이익 (누계)', fmt(yoyOp.cur, 1), '억원', yoyBadge(yoyOp), yoyOp.cur >= 0 ? 'green' : 'red', yoyOp.prev != null ? `전년동기 ${fmt(yoyOp.prev, 1)}억` : '', 'fin:영업이익'),
+    kpi('판관비 (누계)', fmt(yoyOpex.cur, 1), '억원', yoyBadge(yoyOpex), 'purple', `인건비 ${fmt(sum(d.인건비), 1)}억`, 'fin:판관비'),
+    kpi('마케팅비 (누계)', fmt(yoyMkt.cur, 1), '억원', yoyBadge(yoyMkt), 'orange', yoyMkt.prev != null ? `전년동기 ${fmt(yoyMkt.prev, 1)}억` : '', 'fin:마케팅비'),
+    kpi('통신매출 (누계)', fmt(yoyTong.cur, 1), '억원', yoyBadge(yoyTong), 'blue', yoyTong.prev != null ? `전년동기 ${fmt(yoyTong.prev, 1)}억` : '', 'fin:통신매출'),
   ].join('');
 
   const pointCfg = { pointRadius: 4, pointHoverRadius: 8, pointHitRadius: 24, pointBorderWidth: 2, pointBorderColor: '#fff' };
