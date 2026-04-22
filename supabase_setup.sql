@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS kts_users (
   role        text DEFAULT 'executive',  -- 'admin' | 'executive'
   name        text,
   title       text,
-  pages       text DEFAULT 'all',        -- 'all' | 쉼표 구분 페이지 ID
+  pages       text DEFAULT 'all',
   active      boolean DEFAULT true,
   last_login  timestamptz,
   created_at  timestamptz DEFAULT now()
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS kts_users (
 -- ── 4. kts_metrics_config (지표 관리 설정) ───────────────────
 CREATE TABLE IF NOT EXISTS kts_metrics_config (
   id          int PRIMARY KEY DEFAULT 1,  -- 항상 id=1 단일 행 사용
-  data        jsonb NOT NULL,             -- METRICS_L 배열 전체
+  data        jsonb NOT NULL,
   updated_by  text,
   updated_at  timestamptz DEFAULT now()
 );
@@ -49,62 +49,49 @@ CREATE TABLE IF NOT EXISTS kts_metrics_config (
 -- ================================================================
 -- RLS (Row Level Security) 설정
 -- ================================================================
--- ⚠️ 현재 앱은 Supabase Auth 미사용 (자체 kts_users 테이블로 인증)
---    → anon 키로 SELECT 허용, INSERT/UPDATE/DELETE는 service_role만 허용
---    → 향후 Supabase Auth 도입 시 아래 주석 처리된 정책으로 교체
+-- ⚠️ 앱이 anon 키로 읽기/쓰기를 모두 수행하므로 전체 허용
+--    (보안의 핵심은 "데이터가 GitHub 공개 저장소에 없다"는 것)
+--    데이터 접근은 앱 자체 로그인(kts_users) 으로 1차 통제됨
+--
+-- 향후 Supabase Auth 도입 시 아래 주석된 엄격한 정책으로 교체
 
 ALTER TABLE kts_data           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE kts_upload_log     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE kts_users          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE kts_metrics_config ENABLE ROW LEVEL SECURITY;
 
--- kts_data: 읽기는 anon 허용, 쓰기는 service_role만
-CREATE POLICY "kts_data_read"   ON kts_data FOR SELECT USING (true);
-CREATE POLICY "kts_data_write"  ON kts_data FOR ALL    USING (auth.role() = 'service_role');
-
--- kts_upload_log: 읽기/쓰기 모두 anon 허용 (앱 내부에서만 호출)
-CREATE POLICY "kts_log_all"     ON kts_upload_log FOR ALL USING (true);
-
--- kts_users: 읽기는 anon 허용 (로그인 조회), 쓰기는 service_role만
-CREATE POLICY "kts_users_read"  ON kts_users FOR SELECT USING (true);
-CREATE POLICY "kts_users_write" ON kts_users FOR ALL    USING (auth.role() = 'service_role');
-
--- kts_metrics_config: 읽기는 anon 허용, 쓰기는 service_role만
-CREATE POLICY "kts_mc_read"     ON kts_metrics_config FOR SELECT USING (true);
-CREATE POLICY "kts_mc_write"    ON kts_metrics_config FOR ALL    USING (auth.role() = 'service_role');
+-- 전체 테이블: anon 키로 읽기/쓰기 모두 허용
+CREATE POLICY "kts_data_all"   ON kts_data           FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "kts_log_all"    ON kts_upload_log     FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "kts_users_all"  ON kts_users          FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "kts_mc_all"     ON kts_metrics_config FOR ALL USING (true) WITH CHECK (true);
 
 
 -- ================================================================
--- ※ 현재 RLS 한계 & 향후 개선 방향
+-- ※ 향후 Supabase Auth 기반 엄격한 RLS (참고용)
 -- ================================================================
--- 현재: anon 키가 JS 소스에 노출 → 누구나 읽기 가능
---       (단, raw.js처럼 GitHub에 노출되지는 않음 → 보안 향상)
+-- Supabase Auth 도입 후 위 정책을 삭제하고 아래로 교체:
 --
--- 완전한 보안을 위한 다음 단계:
---   1. Supabase Auth 도입 (이메일/비밀번호 또는 SSO)
---   2. kts_users 기반 인증을 Supabase Auth로 마이그레이션
---   3. RLS 정책을 auth.uid() 기반으로 변경:
+-- -- 읽기: 로그인한 사용자만
+-- CREATE POLICY "read_authenticated"
+--   ON kts_data FOR SELECT
+--   USING (auth.role() = 'authenticated');
 --
---      CREATE POLICY "authenticated_read"
---        ON kts_data FOR SELECT
---        USING (auth.role() = 'authenticated');
---
---      CREATE POLICY "admin_write"
---        ON kts_data FOR ALL
---        USING (
---          auth.role() = 'authenticated' AND
---          EXISTS (
---            SELECT 1 FROM kts_users
---            WHERE user_id = auth.jwt()->>'sub'
---            AND role = 'admin'
---          )
---        );
+-- -- 쓰기: 로그인 + admin 역할만
+-- CREATE POLICY "write_admin"
+--   ON kts_data FOR ALL
+--   USING (
+--     auth.role() = 'authenticated' AND
+--     (SELECT role FROM kts_users WHERE user_id = auth.jwt()->>'email') = 'admin'
+--   )
+--   WITH CHECK (true);
 
 
 -- ================================================================
 -- 초기 데이터 업로드 방법
 -- ================================================================
--- 앱에 로그인 후 Admin > 시스템 현황 페이지에서
--- "전체 데이터 Supabase 재업로드" 버튼을 클릭하세요.
--- → raw.js의 모든 카테고리 데이터가 kts_data 테이블에 저장됩니다.
--- → 이후 raw.js는 오프라인 fallback 전용으로만 사용됩니다.
+-- 1. 이 SQL을 Supabase SQL Editor에서 실행 (테이블 생성)
+-- 2. 앱에 admin 계정으로 로그인
+-- 3. Admin > 시스템 현황 > "전체 데이터 Supabase 재업로드" 버튼 클릭
+--    → raw.js의 13개 카테고리가 kts_data에 저장됨
+--    → 이후 raw.js는 오프라인 fallback 전용으로만 사용됨

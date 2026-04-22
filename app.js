@@ -554,20 +554,25 @@ async function seedAllToSupabase(){
       });
       if(error){fail++;console.warn(cat,'실패:',error.message);}
       else ok++;
-    }catch(e){fail++;}
+    }catch(e){fail++;console.error(cat,'예외:',e.message);}
   }
   // 지표 설정도 함께 업로드
   if(window.METRICS_L){
     try{
-      await sb.from('kts_metrics_config').upsert({
+      const {error:mcErr}=await sb.from('kts_metrics_config').upsert({
         id:1, data:window.METRICS_L,
         updated_at:new Date().toISOString(), updated_by:S.user?.name||'시스템'
       });
-    }catch(_){}
+      if(mcErr) console.warn('metrics_config 실패:',mcErr.message);
+    }catch(e){console.error('metrics_config 예외:',e.message);}
   }
   if(btn){btn.disabled=false;btn.textContent='☁️ 전체 데이터 Supabase 재업로드';}
-  showToast(`✅ ${ok}개 카테고리 DB 업로드 완료${fail?` (${fail}개 실패)`:''}`);
-  if(window.addPendingChange) window.addPendingChange('mod',`전체 데이터 Supabase 업로드 (${ok}개 카테고리)`);
+  if(ok===0&&fail>0){
+    showToast('❌ 전체 실패 — F12 콘솔 확인 또는 Supabase SQL Editor에서 supabase_setup.sql 먼저 실행 필요');
+  } else {
+    showToast(`✅ ${ok}개 카테고리 DB 업로드 완료${fail?` (${fail}개 실패)`:''}`);
+    if(ok>0&&window.addPendingChange) window.addPendingChange('mod',`전체 데이터 Supabase 업로드 (${ok}개 카테고리)`);
+  }
 }
 window.seedAllToSupabase=seedAllToSupabase;
 
