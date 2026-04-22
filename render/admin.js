@@ -702,15 +702,20 @@ export async function doDeploy() {
     // ② 전체 사용자 동기화 (비활성화 포함)
     if (sb) {
       for (const u of USERS_FULL) {
-        const { error } = await sb.from('kts_users').upsert({
+        const payload = {
           user_id: u.id, pw: u.pw, role: u.role, name: u.name,
           title: u.title || '', active: u.on,
           pages: Array.isArray(u.pages) ? u.pages.join(',') : (u.pages || 'all')
-        });
-        if (error) errs.push(`사용자 ${u.name}: ` + error.message);
+        };
+        console.log(`[Deploy] 사용자 upsert: ${u.id} active=${u.on}`);
+        const { error } = await sb.from('kts_users').upsert(payload);
+        if (error) {
+          console.error(`[Deploy] ${u.name} 저장 실패:`, error.message, error.code);
+          errs.push(`사용자 ${u.name}: ${error.message}`);
+        }
       }
     }
-  } catch(e) { errs.push(e.message); }
+  } catch(e) { errs.push(e.message); console.error('[Deploy] 예외:', e); }
 
   if (errs.length) {
     showToast('❌ 배포 실패: ' + errs[0]);

@@ -55,19 +55,22 @@ const USERS_DB_LOCAL = [
   {user_id:'data', pw:'data1234',  role:'admin',     name:'정데이터', title:'데이터팀',     pages:'all', active:true},
 ];
 
-// Supabase에서 유저 조회 — Supabase에 존재하면 Supabase가 최종 권한
+// Supabase에서 유저 조회 — Supabase에 있으면 Supabase가 최종 권한
 async function findUserDB(id, pw){
   try{
-    // 비밀번호/active 조건 없이 user_id만으로 먼저 조회
     const {data,error}=await sb.from('kts_users').select('*').eq('user_id',id).single();
-    if(!error && data){
-      // Supabase에 사용자가 있으면 로컬 fallback 사용 안 함
-      if(data.active && data.pw===pw)
+    if(data){
+      // Supabase에 사용자 존재 → 로컬 fallback 완전 차단
+      const isActive = data.active === true || data.active === 1 || data.active === 'true';
+      console.log(`[Auth] ${id}: active=${data.active}(${isActive}), pwMatch=${data.pw===pw}`);
+      if(isActive && data.pw===pw)
         return {id:data.user_id, pw:data.pw, role:data.role, name:data.name, title:data.title||'', pages:data.pages||'all'};
-      return null; // 비활성 또는 비밀번호 불일치
+      console.warn(`[Auth] ${id} 로그인 거부 — active:${data.active}, pwMatch:${data.pw===pw}`);
+      return null;
     }
-  }catch(e){}
-  // Supabase에 없는 경우만 로컬 fallback (초기 세팅 전 또는 오프라인)
+    if(error) console.warn(`[Auth] Supabase 오류 (${error.code}): ${error.message}`);
+  }catch(e){ console.warn('[Auth] Supabase 연결 실패:', e.message); }
+  // user_id가 DB에 없을 때만 로컬 fallback (초기 설정 전 / 오프라인)
   const u=USERS_DB_LOCAL.find(u=>u.user_id===id&&u.pw===pw&&u.active);
   return u?{id:u.user_id,pw:u.pw,role:u.role,name:u.name,title:u.title,pages:u.pages}:null;
 }
