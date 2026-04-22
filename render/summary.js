@@ -164,8 +164,17 @@ export function renderSummary() {
   const infra = getInfraSeries();
   const infraLast = infra.storeCount?.[infra.storeCount.length - 1] ?? 0;
 
-  // ── 무선 생산성 = 신규/유지 * 1000
-  const 무선생산성 = 무선유지last > 0 ? (무선신규last / 무선유지last * 1000).toFixed(1) : '-';
+  // ── 유무선 매장 생산성 = 점당생산성(무선) + 점당생산성(유선), 최근월
+  const wpsArr = infra.wirelessPerStore;
+  const lpsArr = infra.wirelinePerStore;
+  const infraLen = wpsArr.length;
+  const infraLastWl = wpsArr[infraLen - 1] ?? 0;
+  const infraLastLn = lpsArr[infraLen - 1] ?? 0;
+  const 유무선매장생산성 = (infraLastWl + infraLastLn).toFixed(1);
+  const 유무선매장생산성Prev = ((wpsArr[infraLen - 13] ?? 0) + (lpsArr[infraLen - 13] ?? 0));
+  const 유무선매장생산성Yoy = 유무선매장생산성Prev > 0
+    ? (((infraLastWl + infraLastLn) - 유무선매장생산성Prev) / 유무선매장생산성Prev * 100).toFixed(1)
+    : '0.0';
 
   // ── 요약 텍스트 생성 (동적)
   const 서비스YoySign = yoy서비스?.pct >= 0 ? '+' : '';
@@ -287,7 +296,7 @@ export function renderSummary() {
     ${procCard('R-VOC 발생률', '📞', vocRate, '%', `원천인입 ${vocCnt.toLocaleString()}건 · ${VOC.months[vocLast]}`, vocRate <= 0.5 ? '#10b981' : '#ef4444')}
     ${procCard('TCSI 점수', '⭐', tcsiScore.toFixed(1), '점', `${TC.months[tcLast]} 기준 · KT M&S`, tcsiScore >= 95 ? '#10b981' : tcsiScore >= 90 ? '#f59e0b' : '#ef4444')}
     ${procCard('B2B 후불신규', '🏭', b2b신규누계.toLocaleString(), '건', `25년 누계 · 전년比 ${b2bYoy >= 0 ? '+' : ''}${b2bYoy}%`, Number(b2bYoy) >= 0 ? '#10b981' : '#ef4444')}
-    ${procCard('무선 생산성', '📊', 무선생산성, '건/천명', `유지 대비 신규율 · ${wlMs[wlLast]}`, Number(무선생산성) >= 30 ? '#10b981' : '#f59e0b')}
+    ${procCard('유무선 매장 생산성', '📊', 유무선매장생산성, '건/점', `무선+유선 점당생산성 · ${infra.months[infraLen - 1]} · 전년比 ${Number(유무선매장생산성Yoy) >= 0 ? '+' : ''}${유무선매장생산성Yoy}%`, Number(유무선매장생산성Yoy) >= 0 ? '#10b981' : '#ef4444')}
   </div>
 </div>`;
 }
