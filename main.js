@@ -28,10 +28,11 @@ import { renderStrategy } from './render/strategy.js';
 import { renderHR } from './render/hr.js';
 import {
   UPLOAD_H, METRICS_L, USERS_FULL,
+  addPendingChange,
   renderAdminOverview, openUploadDetail, redownloadFile,
   buildSrcPicker, selectMetricSrc, renderFieldList, selectMetricField, clearMetricSrc,
   renderAdminUpload, renderAdminMetrics, toggleMetric, openMetricEdit, openMetricAdd,
-  saveMetric, deleteMetric,
+  saveMetric, deleteMetric, moveMetric,
   renderAdminUsers, togglePw, openUserEdit, openUserAdd, saveUser, deleteUser,
   openFindModal, switchFindTab, doFind,
   renderAdminBeta, previewPage, doDeploy
@@ -104,10 +105,11 @@ Object.assign(window, {
 
   // render — admin
   UPLOAD_H, METRICS_L, USERS_FULL,
+  addPendingChange,
   renderAdminOverview, openUploadDetail, redownloadFile,
   buildSrcPicker, selectMetricSrc, renderFieldList, selectMetricField, clearMetricSrc,
   renderAdminUpload, renderAdminMetrics, toggleMetric, openMetricEdit, openMetricAdd,
-  saveMetric, deleteMetric,
+  saveMetric, deleteMetric, moveMetric,
   renderAdminUsers, togglePw, openUserEdit, openUserAdd, saveUser, deleteUser,
   openFindModal, switchFindTab, doFind,
   renderAdminBeta, previewPage, doDeploy,

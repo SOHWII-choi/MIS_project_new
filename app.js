@@ -55,13 +55,19 @@ const USERS_DB_LOCAL = [
   {user_id:'data', pw:'data1234',  role:'admin',     name:'정데이터', title:'데이터팀',     pages:'all', active:true},
 ];
 
-// Supabase에서 유저 조회, 실패 시 로컬 fallback
+// Supabase에서 유저 조회 — Supabase에 존재하면 Supabase가 최종 권한
 async function findUserDB(id, pw){
   try{
-    const {data,error}=await sb.from('kts_users').select('*').eq('user_id',id).eq('pw',pw).eq('active',true).single();
-    if(!error && data) return {id:data.user_id, pw:data.pw, role:data.role, name:data.name, title:data.title||'', pages:data.pages||'all'};
+    // 비밀번호/active 조건 없이 user_id만으로 먼저 조회
+    const {data,error}=await sb.from('kts_users').select('*').eq('user_id',id).single();
+    if(!error && data){
+      // Supabase에 사용자가 있으면 로컬 fallback 사용 안 함
+      if(data.active && data.pw===pw)
+        return {id:data.user_id, pw:data.pw, role:data.role, name:data.name, title:data.title||'', pages:data.pages||'all'};
+      return null; // 비활성 또는 비밀번호 불일치
+    }
   }catch(e){}
-  // 로컬 fallback
+  // Supabase에 없는 경우만 로컬 fallback (초기 세팅 전 또는 오프라인)
   const u=USERS_DB_LOCAL.find(u=>u.user_id===id&&u.pw===pw&&u.active);
   return u?{id:u.user_id,pw:u.pw,role:u.role,name:u.name,title:u.title,pages:u.pages}:null;
 }

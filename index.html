@@ -439,7 +439,7 @@
 
       <div class="page" id="page-admin-metrics">
         <div class="sec-hd"><div><h2>지표 관리</h2><p>KPI 지표 추가·편집·활성화</p></div><button class="btn btn-primary" onclick="openMetricAdd()">+ 지표 추가</button></div>
-        <div class="card-wrap"><div class="table-scroll"><table class="data-table"><thead><tr><th>지표명</th><th>카테고리</th><th>단위</th><th>표시위치</th><th>설명</th><th>상태</th><th>관리</th></tr></thead><tbody id="metrics-tbody"></tbody></table></div></div>
+        <div class="card-wrap"><div class="table-scroll"><table class="data-table"><thead><tr><th style="width:36px">순서</th><th>지표명</th><th>카테고리</th><th>단위</th><th>표시 페이지</th><th>표시 형태</th><th>상태</th><th>관리</th></tr></thead><tbody id="metrics-tbody"></tbody></table></div></div>
       </div>
 
       <div class="page" id="page-admin-users">
@@ -678,8 +678,39 @@
       <div class="field-g"><label>지표 설명</label><textarea id="me-desc" rows="2" placeholder="이 지표의 의미와 활용 방법을 입력하세요"></textarea></div>
     </div>
 
+    <!-- 배치 설정 -->
+    <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--text3);margin:18px 0 10px;text-transform:uppercase;border-top:1px solid var(--border);padding-top:16px">② 배치 설정</div>
+    <div class="field-row">
+      <div class="field-g"><label>표시 페이지</label>
+        <select id="me-page">
+          <option value="">미배치 (지표관리만)</option>
+          <option value="summary">경영요약</option>
+          <option value="finance">재무</option>
+          <option value="wireless">무선 가입자</option>
+          <option value="wired">유선 가입자</option>
+          <option value="org">조직별 실적</option>
+          <option value="digital">디지털 채널</option>
+          <option value="b2b">B2B</option>
+          <option value="smb">소상공인</option>
+          <option value="platform">유통플랫폼</option>
+          <option value="quality">품질지표</option>
+          <option value="infra">인프라</option>
+          <option value="strategy">전략상품</option>
+          <option value="hr">인력</option>
+        </select>
+      </div>
+      <div class="field-g"><label>표시 형태</label>
+        <select id="me-display">
+          <option value="kpi-card">KPI 카드</option>
+          <option value="chart-line">꺾은선 차트</option>
+          <option value="chart-bar">막대 차트</option>
+          <option value="table">테이블</option>
+        </select>
+      </div>
+    </div>
+
     <!-- 데이터 연결 -->
-    <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--text3);margin:18px 0 10px;text-transform:uppercase;border-top:1px solid var(--border);padding-top:16px">② 데이터 연결</div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--text3);margin:18px 0 10px;text-transform:uppercase;border-top:1px solid var(--border);padding-top:16px">③ 데이터 연결</div>
     <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:16px;margin-bottom:14px">
       <div style="display:grid;grid-template-columns:180px 1fr;gap:12px;min-height:220px">
 

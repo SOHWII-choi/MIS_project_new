@@ -368,14 +368,21 @@ export function renderAdminUpload() {
     });
 }
 
+const PAGE_LABELS_M = { summary:'경영요약', finance:'재무', wireless:'무선', wired:'유선', org:'조직별', digital:'디지털', b2b:'B2B', smb:'소상공인', platform:'플랫폼', quality:'품질', infra:'인프라', strategy:'전략상품', hr:'인력' };
+const DISPLAY_LABELS = { 'kpi-card':'KPI 카드', 'chart-line':'꺾은선', 'chart-bar':'막대', 'table':'테이블' };
+
 export function renderAdminMetrics() {
   document.getElementById('metrics-tbody').innerHTML = METRICS_L.map((m, i) => `
     <tr>
+      <td style="text-align:center;white-space:nowrap">
+        <button onclick="moveMetric(${i},-1)" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:0 2px" ${i===0?'disabled':''}>↑</button>
+        <button onclick="moveMetric(${i},1)"  style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:0 2px" ${i===METRICS_L.length-1?'disabled':''}>↓</button>
+      </td>
       <td><b style="color:var(--text)">${m.name}</b></td>
       <td><span class="td-tag" style="background:rgba(74,158,255,.1);color:var(--blue)">${m.cat}</span></td>
       <td style="font-family:var(--mono);color:var(--text3)">${m.unit}</td>
-      <td style="color:var(--text3);font-size:11px">${m.pos}</td>
-      <td style="color:var(--text3);font-size:11px;max-width:160px;white-space:normal">${m.desc || ''}</td>
+      <td style="color:var(--text3);font-size:11px">${m.page ? (PAGE_LABELS_M[m.page]||m.page) : '–'}</td>
+      <td style="color:var(--text3);font-size:11px">${m.displayType ? (DISPLAY_LABELS[m.displayType]||m.displayType) : '–'}</td>
       <td>
         <label style="cursor:pointer;display:flex;align-items:center;gap:5px;font-size:11px">
           <input type="checkbox" ${m.on ? 'checked' : ''} onchange="toggleMetric(${i},this.checked)" style="accent-color:var(--gold)">
@@ -384,6 +391,14 @@ export function renderAdminMetrics() {
       </td>
       <td><button class="btn btn-ghost" style="padding:3px 10px;font-size:10px" onclick="openMetricEdit(${i})">편집</button></td>
     </tr>`).join('');
+}
+
+export function moveMetric(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= METRICS_L.length) return;
+  [METRICS_L[i], METRICS_L[j]] = [METRICS_L[j], METRICS_L[i]];
+  renderAdminMetrics();
+  addPendingChange('mod', `지표 순서 변경: ${METRICS_L[j].name}`);
 }
 
 export function toggleMetric(i, val) {
@@ -395,7 +410,6 @@ export function toggleMetric(i, val) {
   }
   showToast(`${METRICS_L[i].name} ${val ? '활성화' : '비활성화'}`);
   addPendingChange(val ? 'add' : 'del', `지표 ${val ? '활성화' : '비활성화'}: ${METRICS_L[i].name}`);
-  syncMetrics();
 }
 
 export function openMetricEdit(i) {
@@ -410,6 +424,8 @@ export function openMetricEdit(i) {
   document.getElementById('me-active').value = String(m.on);
   document.getElementById('me-agg').value = m.agg || 'last';
   document.getElementById('me-src').value = m.src || '';
+  document.getElementById('me-page').value = m.page || '';
+  document.getElementById('me-display').value = m.displayType || 'kpi-card';
 
   const srcParts = (m.src || '').split('.');
   _meSelectedSrc = srcParts[0] || '';
@@ -442,6 +458,8 @@ export function openMetricAdd() {
   document.getElementById('me-active').value = 'true';
   document.getElementById('me-agg').value = 'last';
   document.getElementById('me-src').value = '';
+  document.getElementById('me-page').value = '';
+  document.getElementById('me-display').value = 'kpi-card';
   document.getElementById('me-src-display').textContent = '선택 없음';
   document.getElementById('me-src-display').style.color = 'var(--text3)';
   document.getElementById('me-src-preview').textContent = '–';
@@ -460,6 +478,8 @@ export function saveMetric() {
     on: document.getElementById('me-active').value === 'true',
     agg: document.getElementById('me-agg').value,
     src: document.getElementById('me-src').value.trim(),
+    page: document.getElementById('me-page').value || '',
+    displayType: document.getElementById('me-display').value || 'kpi-card',
   };
   if (!m.name) { showToast('❗ 지표명을 입력하세요'); return; }
   const isEdit = _editMetricIdx >= 0;
@@ -468,8 +488,7 @@ export function saveMetric() {
   window.closeModal && window.closeModal('modal-metric-edit');
   renderAdminMetrics();
   showToast(`✅ 지표 "${m.name}" ${isEdit ? '수정' : '추가'} 완료 ${m.src ? '· 데이터 연결: ' + m.src : ''}`);
-  addPendingChange(isEdit ? 'mod' : 'add', `지표 ${isEdit ? '수정' : '추가'}: ${m.name}${m.src ? ' (' + m.src + ')' : ''}`);
-  syncMetrics();
+  addPendingChange(isEdit ? 'mod' : 'add', `지표 ${isEdit ? '수정' : '추가'}: ${m.name}${m.src ? ' (' + m.src + ')' : ''}${m.page ? ' → ' + m.page + '페이지' : ''}`);
 }
 
 export function deleteMetric() {
@@ -480,7 +499,6 @@ export function deleteMetric() {
   renderAdminMetrics();
   showToast(`🗑️ 지표 "${name}" 삭제 완료`);
   addPendingChange('del', `지표 삭제: ${name}`);
-  syncMetrics();
 }
 
 export function renderAdminUsers() {
@@ -567,19 +585,18 @@ export function saveUser() {
   }
   window.closeModal && window.closeModal('modal-user-edit');
   renderAdminUsers();
-  showToast(`✅ ${name} 사용자 정보 저장 완료`);
-  syncUserToDb(u);
+  showToast(`✅ ${name} 저장됨 — 배포 후 적용됩니다`);
+  addPendingChange('mod', `사용자 ${_editUserIdx >= 0 ? '수정' : '추가'}: ${name} (${u.role === 'admin' ? '관리자' : '임원'}, ${u.on ? '활성' : '비활성'})`);
 }
 
 export function deleteUser() {
   if (_editUserIdx < 0) return;
-  const uid = USERS_FULL[_editUserIdx].id;
   const name = USERS_FULL[_editUserIdx].name;
   USERS_FULL.splice(_editUserIdx, 1);
   window.closeModal && window.closeModal('modal-user-edit');
   renderAdminUsers();
-  showToast(`🗑️ ${name} 계정이 삭제되었습니다`);
-  syncUserDeleteFromDb(uid);
+  showToast(`🗑️ ${name} 삭제됨 — 배포 후 적용됩니다`);
+  addPendingChange('del', `사용자 삭제: ${name}`);
 }
 
 export function openFindModal() { window.openModal && window.openModal('modal-find'); _findTab = 'id'; document.getElementById('find-id-tab').style.display = ''; document.getElementById('find-pw-tab').style.display = 'none'; }
@@ -664,15 +681,48 @@ export function previewPage(id) {
   document.body.appendChild(banner);
 }
 
-export function doDeploy() {
-  if (_deployed) return;
+export async function doDeploy() {
+  if (_deployed || _pendingChanges.length === 0) return;
   const btn = document.getElementById('deploy-btn');
   btn.disabled = true; btn.textContent = '⏳ 배포 중...';
-  setTimeout(() => {
-    _deployed = true;
-    _deployHistory.unshift({ dt: new Date().toLocaleString('ko-KR').replace(/\./g, '-').replace(/\s/g, ' ').slice(0, 16), user: S.user?.name || '관리자', cnt: _pendingChanges.length, ok: true });
-    renderAdminBeta();
-    showToast('🚀 배포 완료! 임원 화면에 변경사항이 반영되었습니다');
-    try { localStorage.setItem('kts_deployed', 'true'); } catch (e) { }
-  }, 1800);
+  const sb = window.sb;
+  const errs = [];
+
+  try {
+    // ① 지표 설정 동기화
+    if (sb) {
+      const { error } = await sb.from('kts_metrics_config').upsert({
+        id: 1, data: METRICS_L,
+        updated_at: new Date().toISOString(),
+        updated_by: S.user?.name || '관리자'
+      });
+      if (error) errs.push('지표설정: ' + error.message);
+    }
+
+    // ② 전체 사용자 동기화 (비활성화 포함)
+    if (sb) {
+      for (const u of USERS_FULL) {
+        const { error } = await sb.from('kts_users').upsert({
+          user_id: u.id, pw: u.pw, role: u.role, name: u.name,
+          title: u.title || '', active: u.on,
+          pages: Array.isArray(u.pages) ? u.pages.join(',') : (u.pages || 'all')
+        });
+        if (error) errs.push(`사용자 ${u.name}: ` + error.message);
+      }
+    }
+  } catch(e) { errs.push(e.message); }
+
+  if (errs.length) {
+    showToast('❌ 배포 실패: ' + errs[0]);
+    btn.disabled = false; btn.textContent = '🚀 배포하기';
+    return;
+  }
+
+  _deployed = true;
+  const cnt = _pendingChanges.length;
+  _deployHistory.unshift({ dt: new Date().toLocaleString('ko-KR').slice(0, 16), user: S.user?.name || '관리자', cnt, ok: true });
+  _pendingChanges.length = 0;
+  renderAdminBeta();
+  showToast('✅ 배포 완료! 사용자 권한 변경은 다음 로그인부터, 지표 설정은 즉시 적용됩니다');
+  try { localStorage.setItem('kts_deployed', 'true'); } catch(e) {}
 }
