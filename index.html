@@ -350,6 +350,7 @@
       <div class="page" id="page-admin-overview">
         <div class="sec-hd"><div><h2>시스템 현황</h2><p>데이터 현황 및 최근 업로드 상태</p></div><div class="sec-tag">ADMIN</div></div>
         <div class="kpi-grid" id="admin-kpi"></div>
+        <div id="seed-db-section" style="margin-bottom:16px"></div>
         <div class="chart-grid">
           <div class="chart-card"><div class="chart-title">데이터 업로드 이력</div>
             <table class="data-table mt16"><thead><tr><th>파일명</th><th>카테고리</th><th>업로드일</th><th>상태</th></tr></thead><tbody id="upload-log"></tbody></table>
@@ -465,8 +466,11 @@
             <button class="btn btn-ghost" style="justify-content:flex-start;gap:8px;padding:12px 14px" onclick="downloadTemplate('wireless')">
               <span style="font-size:18px">📱</span><div style="text-align:left"><div style="font-size:12px;font-weight:700">무선가입자 양식</div><div style="font-size:10px;color:var(--text3)">무선영업팀 · CAPA/유지/순증</div></div>
             </button>
+            <button class="btn btn-ghost" style="justify-content:flex-start;gap:8px;padding:12px 14px" onclick="downloadTemplate('wired')">
+              <span style="font-size:18px">🌐</span><div style="text-align:left"><div style="font-size:12px;font-weight:700">유선가입자 양식</div><div style="font-size:10px;color:var(--text3)">유선영업팀 · 유지/신규/해지</div></div>
+            </button>
             <button class="btn btn-ghost" style="justify-content:flex-start;gap:8px;padding:12px 14px" onclick="downloadTemplate('channel')">
-              <span style="font-size:18px">🏪</span><div style="text-align:left"><div style="font-size:12px;font-weight:700">채널별 실적 양식</div><div style="font-size:10px;color:var(--text3)">소매/도매/디지털/B2B/소상공인</div></div>
+              <span style="font-size:18px">🏪</span><div style="text-align:left"><div style="font-size:12px;font-weight:700">채널별 실적 양식</div><div style="font-size:10px;color:var(--text3)">소매/도매/디지털/B2B/소상공인/플랫폼</div></div>
             </button>
             <button class="btn btn-ghost" style="justify-content:flex-start;gap:8px;padding:12px 14px" onclick="downloadTemplate('quality')">
               <span style="font-size:18px">⭐</span><div style="text-align:left"><div style="font-size:12px;font-weight:700">품질지표 양식</div><div style="font-size:10px;color:var(--text3)">품질관리팀 · TCSI/VOC</div></div>

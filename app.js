@@ -31,6 +31,7 @@ function _noop(){}
 const SB_URL = 'https://cypwrpkiltglbogixpva.supabase.co';
 const SB_KEY = 'sb_publishable_B6EgEqqgfdoloD_OgLVGJg_rKShV2D3';
 const sb = supabase.createClient(SB_URL, SB_KEY);
+window.sb = sb;
 
 // ── DB 상태 표시 ──
 function setDbStatus(msg){ const el=document.getElementById('db-load-text'); if(el)el.textContent=msg; }
@@ -157,6 +158,13 @@ async function loadDataFromDB(){
         loaded++;
       }
     }
+    // 지표 설정 로드
+    try{
+      const {data:mc}=await sb.from('kts_metrics_config').select('data').eq('id',1).single();
+      if(mc?.data && window.METRICS_L){
+        window.METRICS_L.splice(0,window.METRICS_L.length,...mc.data);
+      }
+    }catch(_){}
     if(loaded>0){
       setDbStatus(`✅ DB에서 ${loaded}개 카테고리 로드 완료`);
       console.log(`Supabase DB에서 ${loaded}개 카테고리 데이터 로드`);
@@ -208,27 +216,45 @@ function shakeInput(id){
 }
 
 // ════════════════════════════════════════════
-//  양식 다운로드
+//  양식 다운로드 (RAW 데이터 기반 CSV 생성)
 // ════════════════════════════════════════════
-const TEMPLATE_FILES = {
-  finance:  '재무지표_상세양식.xlsx',
-  wireless: '무선가입자_양식.xlsx',
-  channel:  '채널별실적_양식.xlsx',
-  quality:  '품질지표_양식.xlsx',
-  hr:       '인력_인프라_전략상품_양식.xlsx',
+const TEMPLATE_META = {
+  finance:  { label: '재무지표',           keys: ['finance'] },
+  wireless: { label: '무선가입자',         keys: ['wireless'] },
+  wired:    { label: '유선가입자',         keys: ['wired'] },
+  channel:  { label: '채널별실적',         keys: ['org', 'digital', 'b2b', 'smb', 'platform'] },
+  quality:  { label: '품질지표',           keys: ['tcsi', 'voc'] },
+  hr:       { label: '인력_인프라_전략상품', keys: ['hr', 'infra', 'strategy'] },
 };
 
 function downloadTemplate(type){
-  const filename = TEMPLATE_FILES[type];
-  if(!filename){ showToast('⚠ 양식 파일을 찾을 수 없습니다'); return; }
-  // 같은 서버 경로의 파일 다운로드
+  const meta = TEMPLATE_META[type];
+  if(!meta){ showToast('⚠ 양식 정의를 찾을 수 없습니다'); return; }
+
+  let csv = '﻿';  // BOM for Excel
+  csv += `# KT M&S 경영성과 — ${meta.label} 데이터\n`;
+  csv += `# 생성: ${new Date().toLocaleString('ko-KR')} | 데이터 기간: 23.1월~25.12월\n\n`;
+
+  meta.keys.forEach(key => {
+    const d = RAW[key];
+    if(!d || !d.months) return;
+    const fields = Object.keys(d).filter(k => k !== 'months' && Array.isArray(d[k]));
+    csv += `## [${key.toUpperCase()}]\n`;
+    csv += ['월', ...fields].join(',') + '\n';
+    d.months.forEach((m, idx) => {
+      csv += [m, ...fields.map(f => d[f][idx] ?? '')].join(',') + '\n';
+    });
+    csv += '\n';
+  });
+
+  const filename = `KTS_${meta.label}_${new Date().toISOString().slice(0,10)}.csv`;
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = filename;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  showToast(`📥 "${filename}" 다운로드 시작`);
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(`📥 "${filename}" 다운로드 완료`);
 }
 
 // ════════════════════════════════════════════
@@ -339,6 +365,7 @@ async function saveEditData(){
     });
 
     showToast(`✅ ${d.months[mIdx]} ${cat} 데이터 ${changed}개 항목 저장 완료`);
+    if(window.addPendingChange) window.addPendingChange('edit', `수기편집: ${cat} ${d.months[mIdx]} (${changed}개 항목)`);
     // 화면 새로고침
     if(RENDER_MAP[S.page]) RENDER_MAP[S.page]();
   } catch(e){
@@ -513,11 +540,65 @@ function exportPDF(){
 }
 
 // ════════════════════════════════════════════════
+//  RAW 전체 Supabase 초기 업로드 (raw.js → DB)
+// ════════════════════════════════════════════════
+async function seedAllToSupabase(){
+  const btn=document.getElementById('seed-all-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ 업로드 중...';}
+  let ok=0,fail=0;
+  for(const cat of Object.keys(RAW)){
+    try{
+      const {error}=await sb.from('kts_data').upsert({
+        category:cat, data:RAW[cat],
+        updated_by:S.user?.name||'시스템', updated_at:new Date().toISOString()
+      });
+      if(error){fail++;console.warn(cat,'실패:',error.message);}
+      else ok++;
+    }catch(e){fail++;}
+  }
+  // 지표 설정도 함께 업로드
+  if(window.METRICS_L){
+    try{
+      await sb.from('kts_metrics_config').upsert({
+        id:1, data:window.METRICS_L,
+        updated_at:new Date().toISOString(), updated_by:S.user?.name||'시스템'
+      });
+    }catch(_){}
+  }
+  if(btn){btn.disabled=false;btn.textContent='☁️ 전체 데이터 Supabase 재업로드';}
+  showToast(`✅ ${ok}개 카테고리 DB 업로드 완료${fail?` (${fail}개 실패)`:''}`);
+  if(window.addPendingChange) window.addPendingChange('mod',`전체 데이터 Supabase 업로드 (${ok}개 카테고리)`);
+}
+window.seedAllToSupabase=seedAllToSupabase;
+
+// ════════════════════════════════════════════════
 //  엑셀 업로드 → Supabase DB 저장 파이프라인
 // ════════════════════════════════════════════════
 
 let _uploadParsedData = null; // 파싱된 데이터 임시 저장
 let _uploadFileName = '';
+
+// 엑셀 파싱 rows 형식 → RAW 플랫 배열 형식으로 변환
+function rowsToFlat(parsedData){
+  const {months, rows}=parsedData;
+  const flat={months};
+  const used=new Set();
+  for(const row of (rows||[])){
+    const labels=(row._labels||[]).filter(Boolean);
+    if(!labels.length) continue;
+    let key=labels[labels.length-1];
+    if(used.has(key)) key=labels.join('_').replace(/\s+/g,'');
+    used.add(key);
+    flat[key]=months.map(m=>{
+      const v=row.values?.[m];
+      if(v===null||v===undefined||v==='') return null;
+      const n=parseFloat(v);
+      return isNaN(n)?null:n;
+    });
+  }
+  flat._uploadedAt=new Date().toISOString();
+  return flat;
+}
 
 // 카테고리 → 시트명 매핑
 const CAT_SHEET_MAP = {
@@ -714,10 +795,13 @@ async function saveToSupabase(){
   btn.textContent = '⏳ DB 저장 중...';
 
   try {
+    // rows 형식 → RAW 플랫 배열 형식으로 변환
+    const flatData = rowsToFlat(_uploadParsedData);
+
     // 1. kts_data에 upsert
     const { error: dataErr } = await sb.from('kts_data').upsert({
       category: cat,
-      data: _uploadParsedData,
+      data: flatData,
       updated_by: S.user?.name || '관리자',
       updated_at: new Date().toISOString()
     });
@@ -736,7 +820,7 @@ async function saveToSupabase(){
     });
 
     // 3. 메모리의 RAW 데이터도 업데이트 (즉시 반영)
-    RAW[cat] = _uploadParsedData;
+    RAW[cat] = flatData;
 
     // 4. 성공 표시
     document.getElementById('upload-result').innerHTML = `

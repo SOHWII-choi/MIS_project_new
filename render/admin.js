@@ -5,6 +5,39 @@ import { fmt } from '../utils/calc.js';
 import { kpi } from '../utils/kpi.js';
 import { showToast } from '../utils/toast.js';
 
+// ── Supabase 동기화 헬퍼 ──
+async function syncMetrics() {
+  const sb = window.sb;
+  if (!sb) return;
+  try {
+    await sb.from('kts_metrics_config').upsert({
+      id: 1, data: METRICS_L,
+      updated_at: new Date().toISOString(),
+      updated_by: window.S?.user?.name || '관리자'
+    });
+  } catch(e) { console.warn('지표 설정 저장 실패:', e.message); }
+}
+
+async function syncUserToDb(u) {
+  const sb = window.sb;
+  if (!sb) return;
+  try {
+    await sb.from('kts_users').upsert({
+      user_id: u.id, pw: u.pw, role: u.role, name: u.name,
+      title: u.title || '', active: u.on,
+      pages: Array.isArray(u.pages) ? u.pages.join(',') : (u.pages || 'all')
+    });
+  } catch(e) { console.warn('사용자 저장 실패:', e.message); }
+}
+
+async function syncUserDeleteFromDb(id) {
+  const sb = window.sb;
+  if (!sb) return;
+  try {
+    await sb.from('kts_users').delete().eq('user_id', id);
+  } catch(e) { console.warn('사용자 삭제 실패:', e.message); }
+}
+
 // ── ADMIN DATA ──
 export const UPLOAD_H = [
   { id: 1, file: '경영성과_재무.xlsx', cat: '재무', period: '23.1~25.12', rows: 8, cols: 36, size: '42KB', date: '2025-12-31 09:12', user: '최관리', ok: true, note: '23~25년 전체 재무지표', preview: [['월', '총매출', '통신매출', '영업이익'], ['25.12월', '507.17', '490.82', '-21.86'], ['25.11월', '569.38', '515.05', '-8.25'], ['25.10월', '572.42', '526.3', '-18.31']] },
@@ -114,6 +147,15 @@ export function renderAdminOverview() {
     kpi('데이터 기간', '36', '개월', null, 'green', '23.1~25.12'),
   ].join('');
   document.getElementById('upload-log').innerHTML = UPLOAD_H.slice(0, 5).map(u => `<tr><td style="font-size:11px">${u.file}</td><td><span class="td-tag" style="background:rgba(74,158,255,.1);color:var(--blue)">${u.cat}</span></td><td style="color:var(--text3)">${u.date.split(' ')[0]}</td><td><span class="status st-on">정상</span></td></tr>`).join('');
+  const seedWrap = document.getElementById('seed-db-section');
+  if (seedWrap) seedWrap.innerHTML = `
+    <div style="background:rgba(74,158,255,.06);border:1px solid rgba(74,158,255,.2);border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px">☁️ Supabase DB 초기화</div>
+        <div style="font-size:11px;color:var(--text3)">현재 메모리의 전체 RAW 데이터 + 지표 설정을 DB에 업로드합니다. 최초 1회 또는 raw.js 수정 후 실행하세요.</div>
+      </div>
+      <button id="seed-all-btn" class="btn btn-primary" style="white-space:nowrap;font-size:11px;padding:7px 16px" onclick="window.seedAllToSupabase && window.seedAllToSupabase()">☁️ 전체 데이터 Supabase 재업로드</button>
+    </div>`;
   const cats = [...new Set(METRICS_L.map(m => m.cat))];
   document.getElementById('metric-stats').innerHTML = cats.map(c => {
     const cnt = METRICS_L.filter(m => m.cat === c).length;
@@ -353,6 +395,7 @@ export function toggleMetric(i, val) {
   }
   showToast(`${METRICS_L[i].name} ${val ? '활성화' : '비활성화'}`);
   addPendingChange(val ? 'add' : 'del', `지표 ${val ? '활성화' : '비활성화'}: ${METRICS_L[i].name}`);
+  syncMetrics();
 }
 
 export function openMetricEdit(i) {
@@ -426,6 +469,7 @@ export function saveMetric() {
   renderAdminMetrics();
   showToast(`✅ 지표 "${m.name}" ${isEdit ? '수정' : '추가'} 완료 ${m.src ? '· 데이터 연결: ' + m.src : ''}`);
   addPendingChange(isEdit ? 'mod' : 'add', `지표 ${isEdit ? '수정' : '추가'}: ${m.name}${m.src ? ' (' + m.src + ')' : ''}`);
+  syncMetrics();
 }
 
 export function deleteMetric() {
@@ -436,6 +480,7 @@ export function deleteMetric() {
   renderAdminMetrics();
   showToast(`🗑️ 지표 "${name}" 삭제 완료`);
   addPendingChange('del', `지표 삭제: ${name}`);
+  syncMetrics();
 }
 
 export function renderAdminUsers() {
@@ -523,15 +568,18 @@ export function saveUser() {
   window.closeModal && window.closeModal('modal-user-edit');
   renderAdminUsers();
   showToast(`✅ ${name} 사용자 정보 저장 완료`);
+  syncUserToDb(u);
 }
 
 export function deleteUser() {
   if (_editUserIdx < 0) return;
+  const uid = USERS_FULL[_editUserIdx].id;
   const name = USERS_FULL[_editUserIdx].name;
   USERS_FULL.splice(_editUserIdx, 1);
   window.closeModal && window.closeModal('modal-user-edit');
   renderAdminUsers();
   showToast(`🗑️ ${name} 계정이 삭제되었습니다`);
+  syncUserDeleteFromDb(uid);
 }
 
 export function openFindModal() { window.openModal && window.openModal('modal-find'); _findTab = 'id'; document.getElementById('find-id-tab').style.display = ''; document.getElementById('find-pw-tab').style.display = 'none'; }
