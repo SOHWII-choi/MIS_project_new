@@ -20,7 +20,7 @@ export function openKpiPopup(key) {
     const WL = RAW.wireless, WD = RAW.wired;
     const DIG = RAW.digital, B2B = RAW.b2b, SMB = RAW.smb;
     const TC = RAW.tcsi, VOC = RAW.voc, HR = RAW.hr;
-    const platArr = (PLAT.시연폰_매각이익 || []).map((v, i) => (v || 0) + ((PLAT.중고폰_매입금액 || [])[i] || 0));
+    const platArr = FIN.유통플랫폼매출 || (PLAT.시연폰_매각이익 || []).map((v, i) => (v || 0) + ((PLAT.중고폰_매입금액 || [])[i] || 0));
     const infra = getInfraSeries();
     const wiredOverride = getWiredOverride(WD.months, WD);
     const hrOverride = getHrOverride(HR.months, HR);

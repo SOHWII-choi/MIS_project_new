@@ -194,7 +194,7 @@ export function renderFinance() {
 
   const dp = gd('platform');
   const RP = RAW.platform;
-  const platRaw = (RP.시연폰_매각이익 || []).map((v, i) => (v || 0) + ((RP.중고폰_매입금액 || [])[i] || 0));
+  const platRaw = RF.유통플랫폼매출 || (RP.시연폰_매각이익 || []).map((v, i) => (v || 0) + ((RP.중고폰_매입금액 || [])[i] || 0));
   const yoyPlat = yoySum(platRaw, RF.months);
 
   document.getElementById('fin-kpi').innerHTML = `
